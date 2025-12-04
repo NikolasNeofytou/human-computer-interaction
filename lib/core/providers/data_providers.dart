@@ -1,0 +1,68 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../config/app_config.dart';
+import '../models/app_notification.dart';
+import '../models/project.dart';
+import '../models/request.dart';
+import '../models/task_item.dart';
+import '../network/api_client.dart';
+import '../repositories/calendar_repository.dart';
+import '../repositories/mock/mock_repositories.dart';
+import '../repositories/notifications_repository.dart';
+import '../repositories/projects_repository.dart';
+import '../repositories/remote/calendar_remote_repository.dart';
+import '../repositories/remote/notifications_remote_repository.dart';
+import '../repositories/remote/projects_remote_repository.dart';
+import '../repositories/remote/requests_remote_repository.dart';
+import '../repositories/requests_repository.dart';
+
+// Repository providers (mock vs remote selection)
+final requestsRepositoryProvider = Provider<RequestsRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (config.useMocks) return MockRequestsRepository();
+  final dio = ref.watch(dioProvider);
+  return RequestsRemoteRepository(dio);
+});
+
+final notificationsRepositoryProvider = Provider<NotificationsRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (config.useMocks) return MockNotificationsRepository();
+  final dio = ref.watch(dioProvider);
+  return NotificationsRemoteRepository(dio);
+});
+
+final projectsRepositoryProvider = Provider<ProjectsRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (config.useMocks) return MockProjectsRepository();
+  final dio = ref.watch(dioProvider);
+  return ProjectsRemoteRepository(dio);
+});
+
+final calendarRepositoryProvider = Provider<CalendarRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (config.useMocks) return MockCalendarRepository();
+  final dio = ref.watch(dioProvider);
+  return CalendarRemoteRepository(dio);
+});
+
+// Data providers using repositories
+final requestsProvider = FutureProvider<List<Request>>(
+  (ref) => ref.read(requestsRepositoryProvider).fetchRequests(),
+);
+
+final notificationsProvider = FutureProvider<List<AppNotification>>(
+  (ref) => ref.read(notificationsRepositoryProvider).fetchNotifications(),
+);
+
+final projectsProvider = FutureProvider<List<Project>>(
+  (ref) => ref.read(projectsRepositoryProvider).fetchProjects(),
+);
+
+final calendarTasksProvider = FutureProvider<List<TaskItem>>(
+  (ref) => ref.read(calendarRepositoryProvider).fetchCalendarTasks(),
+);
+
+final projectTasksProvider =
+    FutureProvider.family<List<TaskItem>, String>((ref, projectId) {
+  return ref.read(projectsRepositoryProvider).fetchProjectTasks(projectId);
+});

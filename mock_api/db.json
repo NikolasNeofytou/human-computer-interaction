@@ -1,0 +1,99 @@
+{
+  "requests": [
+    {
+      "id": "req-1",
+      "title": "Member X asked you to take task Y",
+      "status": "accepted",
+      "createdAt": "2025-08-15T00:00:00Z"
+    },
+    {
+      "id": "req-2",
+      "title": "You want to take task X from member Y",
+      "status": "accepted",
+      "createdAt": "2025-08-16T00:00:00Z"
+    },
+    {
+      "id": "req-3",
+      "title": "Member Z accepted your request",
+      "status": "rejected",
+      "createdAt": "2025-08-17T00:00:00Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "not-1",
+      "title": "Project X is overdue.",
+      "type": "overdue",
+      "createdAt": "2025-08-12T00:00:00Z"
+    },
+    {
+      "id": "not-2",
+      "title": "Member Z commented on Project Y.",
+      "type": "comment",
+      "createdAt": "2025-08-13T00:00:00Z"
+    },
+    {
+      "id": "not-3",
+      "title": "Member X accepted your request.",
+      "type": "accepted",
+      "createdAt": "2025-08-14T00:00:00Z"
+    }
+  ],
+  "projects": [
+    {
+      "id": "proj-1",
+      "name": "Project A",
+      "status": "due_soon",
+      "tasks": 2
+    },
+    {
+      "id": "proj-2",
+      "name": "Project B",
+      "status": "on_track",
+      "tasks": 1
+    }
+  ],
+  "projectTasks": {
+    "proj-1": [
+      {
+        "id": "task-1",
+        "title": "Design handoff",
+        "dueDate": "2025-08-18T00:00:00Z",
+        "status": "pending",
+        "projectId": "proj-1"
+      },
+      {
+        "id": "task-2",
+        "title": "Implement calendar",
+        "dueDate": "2025-08-20T00:00:00Z",
+        "status": "blocked",
+        "projectId": "proj-1"
+      }
+    ],
+    "proj-2": [
+      {
+        "id": "task-3",
+        "title": "QA round",
+        "dueDate": "2025-08-22T00:00:00Z",
+        "status": "pending",
+        "projectId": "proj-2"
+      }
+    ]
+  },
+  "calendarTasks": [
+    {
+      "id": "task-1",
+      "title": "Project X due tomorrow",
+      "dueDate": "2025-08-17T00:00:00Z",
+      "status": "pending",
+      "projectId": "proj-1"
+    },
+    {
+      "id": "task-2",
+      "title": "Project Z kickoff",
+      "dueDate": "2025-08-19T00:00:00Z",
+      "status": "pending",
+      "projectId": "proj-2"
+    }
+  ]
+}
