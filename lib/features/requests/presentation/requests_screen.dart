@@ -54,13 +54,13 @@ class RequestsScreen extends ConsumerWidget {
                   final snapshot = List<Request>.from(items);
                   return Dismissible(
                     key: ValueKey(item.id),
-                    background: _ActionBackground(
+                    background: ActionBackground(
                       color: AppColors.success,
                       icon: Icons.check,
                       label: 'Accept',
                       alignment: Alignment.centerLeft,
                     ),
-                    secondaryBackground: _ActionBackground(
+                    secondaryBackground: ActionBackground(
                       color: AppColors.error,
                       icon: Icons.close,
                       label: 'Reject',

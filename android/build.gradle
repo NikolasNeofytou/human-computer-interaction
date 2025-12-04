@@ -8,6 +8,15 @@ allprojects {
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+    
+    // Force all subprojects to use SDK 34
+    afterEvaluate {
+        if (project.hasProperty('android')) {
+            android {
+                compileSdk 34
+            }
+        }
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")

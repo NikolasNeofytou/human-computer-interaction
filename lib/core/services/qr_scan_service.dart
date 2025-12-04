@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// Service for scanning QR codes using device camera
 class QRScanService {
-  QRViewController? _controller;
+  MobileScannerController? _controller;
   bool _isScanning = false;
   bool _isInitialized = false;
 
@@ -23,57 +23,52 @@ class QRScanService {
     return status.isGranted;
   }
 
-  /// Initialize QR scanner with controller
-  void initialize(QRViewController controller) {
-    _controller = controller;
+  /// Initialize QR scanner
+  Future<MobileScannerController> initializeController() async {
+    _controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      facing: CameraFacing.back,
+    );
     _isInitialized = true;
+    return _controller!;
   }
+
+  /// Get controller
+  MobileScannerController? get controller => _controller;
 
   /// Start scanning
   Future<void> startScanning() async {
     if (_controller == null) {
       throw Exception('QR scanner not initialized');
     }
-    await _controller!.resumeCamera();
+    await _controller!.start();
     _isScanning = true;
   }
 
   /// Pause scanning
   Future<void> pauseScanning() async {
     if (_controller == null) return;
-    await _controller!.pauseCamera();
+    await _controller!.stop();
     _isScanning = false;
   }
 
   /// Stop scanning and release resources
   Future<void> stopScanning() async {
     if (_controller == null) return;
-    await _controller!.pauseCamera();
+    await _controller!.stop();
     _isScanning = false;
   }
 
   /// Toggle flash (torch)
   Future<void> toggleFlash() async {
     if (_controller == null) return;
-    await _controller!.toggleFlash();
+    await _controller!.toggleTorch();
   }
 
-  /// Flip camera (front/back)
-  Future<void> flipCamera() async {
+  /// Switch camera (front/back)
+  Future<void> switchCamera() async {
     if (_controller == null) return;
-    await _controller!.flipCamera();
-  }
-
-  /// Get flash status
-  Future<bool?> getFlashStatus() async {
-    if (_controller == null) return null;
-    return await _controller!.getFlashStatus();
-  }
-
-  /// Get camera facing status
-  Future<CameraFacing?> getCameraFacing() async {
-    if (_controller == null) return null;
-    return await _controller!.getCameraInfo();
+    await _controller!.switchCamera();
   }
 
   /// Dispose controller

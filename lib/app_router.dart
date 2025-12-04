@@ -8,6 +8,7 @@ import 'core/models/task_item.dart';
 import 'features/notifications/presentation/notifications_screen.dart';
 import 'features/notifications/presentation/notification_detail_screen.dart';
 import 'features/inbox/presentation/inbox_screen.dart';
+import 'features/invite/presentation/invite_accept_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
 import 'features/projects/presentation/projects_screen.dart';
 import 'features/projects/presentation/project_detail_screen.dart';
@@ -170,6 +171,27 @@ GoRouter createRouter() {
         path: '/settings/feedback',
         name: 'feedback-settings',
         builder: (context, state) => const FeedbackSettingsScreen(),
+      ),
+      // Deep link routes (outside shell)
+      GoRoute(
+        path: '/invite/accept',
+        name: 'invite-accept',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>?;
+          final projectId = args?['projectId'] as int?;
+          final token = args?['token'] as String?;
+
+          if (projectId == null || token == null) {
+            return const Scaffold(
+              body: Center(child: Text('Invalid invite link')),
+            );
+          }
+
+          return InviteAcceptScreen(
+            projectId: projectId,
+            token: token,
+          );
+        },
       ),
     ],
   );
