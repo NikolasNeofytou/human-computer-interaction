@@ -24,19 +24,25 @@
 - Data/Networking
   - [ ] API client with interceptors (auth, logging, retry/backoff).
   - [ ] Env/secrets handling and mock/server toggle.
-  - [ ] Repository layer with DTOs/models and error handling.
+  - [x] Repository layer with DTOs/models and error handling.
 - UI/UX Polish
   - [ ] Empty/error/loading visuals aligned to Figma.
   - [ ] Shared component library extraction and usage across screens.
   - [ ] Golden tests for key states (requests, notifications, calendar, project detail).
   - [ ] Accessibility: semantics, focus order, large text support.
 - Features
-  - [ ] Requests: accept/decline flows, history, filters.
+  - [x] Requests: accept/decline flows, history, filters.
   - [ ] Notifications: deep links to context, mark read/all.
   - [ ] Calendar: real date picker integration and schedule interactions.
-  - [ ] Projects/Tasks: CRUD with validation, status transitions, task detail.
+  - [x] Projects/Tasks: CRUD with validation, status transitions, task detail.
+  - [x] **Task Comments**: View and add comments on tasks (Axis 1 - Collaborative Computing).
   - [ ] Invites: QR/link generation, copy/clipboard success/fail states.
   - [ ] Chat: send/receive with async state, typing indicators (if available).
+- Mobile-Specific (Axis 2 & 3)
+  - [ ] **Haptics**: Vibration feedback for key actions (Axis 2 - Device Interaction).
+  - [ ] **Sound Effects**: Audio feedback for user actions (Axis 2 - Device Interaction).
+  - [ ] **Camera/QR**: QR code scanning and generation for invites (Axis 2 - Device Interaction).
+  - [ ] **Deep Links**: Handle invite links and navigation (Axis 3 - Connectivity).
 - Ops/Quality
   - [ ] Analytics event taxonomy; error reporting (Sentry/Crashlytics).
   - [ ] CI: add workflows for analyze/test/build; cache pub.

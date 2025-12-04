@@ -7,6 +7,9 @@ Figma-inspired task manager with requests, notifications, calendar, projects, ch
 - App setup: `docs/api_config.md`, `docs/backend_mock.md`
 - Design tokens/checklists: `docs/design-tokens.md`, `docs/flutter_checklist.md`
 - Release + progress: `docs/release_checklist.md`, `docs/progress.md`
+- **Project plan:** `docs/project_plan.md` - Phased implementation roadmap
+- Features:
+  - `docs/comments_system.md` - Task comments implementation (Axis 1)
 
 ## Prerequisites
 - Flutter 3.24+ (add `flutter` to PATH)
