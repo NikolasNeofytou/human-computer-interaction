@@ -1,9 +1,11 @@
 import '../../data/mock_data.dart';
 import '../../models/app_notification.dart';
+import '../../models/comment.dart';
 import '../../models/project.dart';
 import '../../models/request.dart';
 import '../../models/task_item.dart';
 import '../calendar_repository.dart';
+import '../comments_repository.dart';
 import '../notifications_repository.dart';
 import '../projects_repository.dart';
 import '../requests_repository.dart';
@@ -99,4 +101,17 @@ class MockCalendarRepository implements CalendarRepository {
   @override
   Future<List<TaskItem>> fetchCalendarTasks() =>
       MockDataSource.fetchCalendarTasks();
+}
+
+class MockCommentsRepository implements CommentsRepository {
+  @override
+  Future<List<Comment>> fetchComments(String taskId) =>
+      MockDataSource.fetchComments(taskId);
+
+  @override
+  Future<Comment> addComment({
+    required String taskId,
+    required String content,
+  }) =>
+      MockDataSource.addComment(taskId: taskId, content: content);
 }

@@ -2,6 +2,12 @@
 
 Figma-inspired task manager with requests, notifications, calendar, projects, chat, and profile screens. Built with Flutter, Riverpod, go_router, and a lightweight Node/Express mock backend.
 
+## Documentation
+- Course-only docs index: `docs/course_docs/README.md`
+- App setup: `docs/api_config.md`, `docs/backend_mock.md`
+- Design tokens/checklists: `docs/design-tokens.md`, `docs/flutter_checklist.md`
+- Release + progress: `docs/release_checklist.md`, `docs/progress.md`
+
 ## Prerequisites
 - Flutter 3.24+ (add `flutter` to PATH)
 - Node.js 18+ (for the mock backend)

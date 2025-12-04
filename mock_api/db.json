@@ -95,5 +95,41 @@
       "status": "pending",
       "projectId": "proj-2"
     }
-  ]
+  ],
+  "taskComments": {
+    "task-1": [
+      {
+        "id": "comment-1",
+        "taskId": "task-1",
+        "authorName": "Sarah Chen",
+        "content": "Design files are ready for review. Let me know if you need any changes.",
+        "createdAt": "2025-08-15T10:30:00Z"
+      },
+      {
+        "id": "comment-2",
+        "taskId": "task-1",
+        "authorName": "Mike Johnson",
+        "content": "Thanks! I'll review them by EOD today.",
+        "createdAt": "2025-08-15T14:20:00Z"
+      }
+    ],
+    "task-2": [
+      {
+        "id": "comment-3",
+        "taskId": "task-2",
+        "authorName": "Lisa Park",
+        "content": "Blocked on the date picker library integration. Need help with time zones.",
+        "createdAt": "2025-08-16T09:15:00Z"
+      }
+    ],
+    "task-3": [
+      {
+        "id": "comment-4",
+        "taskId": "task-3",
+        "authorName": "John Smith",
+        "content": "Found 3 issues in the last build. Logging them now.",
+        "createdAt": "2025-08-17T11:45:00Z"
+      }
+    ]
+  }
 }

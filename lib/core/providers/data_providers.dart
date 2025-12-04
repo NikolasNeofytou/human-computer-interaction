@@ -7,10 +7,12 @@ import '../models/request.dart';
 import '../models/task_item.dart';
 import '../network/api_client.dart';
 import '../repositories/calendar_repository.dart';
+import '../repositories/comments_repository.dart';
 import '../repositories/mock/mock_repositories.dart';
 import '../repositories/notifications_repository.dart';
 import '../repositories/projects_repository.dart';
 import '../repositories/remote/calendar_remote_repository.dart';
+import '../repositories/remote/comments_remote_repository.dart';
 import '../repositories/remote/notifications_remote_repository.dart';
 import '../repositories/remote/projects_remote_repository.dart';
 import '../repositories/remote/requests_remote_repository.dart';
@@ -43,6 +45,13 @@ final calendarRepositoryProvider = Provider<CalendarRepository>((ref) {
   if (config.useMocks) return MockCalendarRepository();
   final dio = ref.watch(dioProvider);
   return CalendarRemoteRepository(dio);
+});
+
+final commentsRepositoryProvider = Provider<CommentsRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (config.useMocks) return MockCommentsRepository();
+  final dio = ref.watch(dioProvider);
+  return CommentsRemoteRepository(dio);
 });
 
 // Data providers using repositories
