@@ -58,6 +58,10 @@ let taskComments = {
 
 let commentCounter = 5;
 
+// In-memory invite tokens storage
+// Format: { token: { projectId, createdAt, usedBy, expiresAt } }
+let inviteTokens = {};
+
 // Requests
 app.get('/requests', (req, res) => res.json(requests));
 app.post('/requests', (req, res) => {
@@ -123,6 +127,109 @@ app.post('/tasks/:taskId/comments', (req, res) => {
   taskComments[taskId].push(newComment);
   
   res.status(201).json(newComment);
+});
+
+// Invites
+// Generate invite token for a project
+app.post('/projects/:projectId/invite', (req, res) => {
+  const { projectId } = req.params;
+  const { token } = req.body;
+
+  if (!token || token.length !== 32) {
+    return res.status(400).json({ message: 'Invalid token format' });
+  }
+
+  // Check if project exists
+  const project = projects.find((p) => p.id === projectId);
+  if (!project) {
+    return res.status(404).json({ message: 'Project not found' });
+  }
+
+  // Create invite token (expires in 7 days)
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
+  inviteTokens[token] = {
+    projectId,
+    createdAt: new Date().toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    usedBy: null,
+  };
+
+  res.status(201).json({
+    token,
+    projectId,
+    expiresAt: expiresAt.toISOString(),
+  });
+});
+
+// Validate invite token
+app.get('/invite/:token', (req, res) => {
+  const { token } = req.params;
+
+  const invite = inviteTokens[token];
+  if (!invite) {
+    return res.status(404).json({ message: 'Invalid or expired invite' });
+  }
+
+  // Check if expired
+  if (new Date(invite.expiresAt) < new Date()) {
+    delete inviteTokens[token];
+    return res.status(410).json({ message: 'Invite has expired' });
+  }
+
+  // Check if already used
+  if (invite.usedBy) {
+    return res.status(409).json({ message: 'Invite already used' });
+  }
+
+  // Get project details
+  const project = projects.find((p) => p.id === invite.projectId);
+  if (!project) {
+    return res.status(404).json({ message: 'Project not found' });
+  }
+
+  res.json({
+    valid: true,
+    projectId: invite.projectId,
+    projectName: project.name,
+    expiresAt: invite.expiresAt,
+  });
+});
+
+// Accept invite (join project)
+app.post('/invite/:token/accept', (req, res) => {
+  const { token } = req.params;
+  const { userId } = req.body; // In real app, get from auth
+
+  const invite = inviteTokens[token];
+  if (!invite) {
+    return res.status(404).json({ message: 'Invalid or expired invite' });
+  }
+
+  // Check if expired
+  if (new Date(invite.expiresAt) < new Date()) {
+    delete inviteTokens[token];
+    return res.status(410).json({ message: 'Invite has expired' });
+  }
+
+  // Check if already used
+  if (invite.usedBy) {
+    return res.status(409).json({ message: 'Invite already used' });
+  }
+
+  // Mark as used
+  invite.usedBy = userId || 'anonymous-user';
+  invite.acceptedAt = new Date().toISOString();
+
+  const project = projects.find((p) => p.id === invite.projectId);
+
+  res.json({
+    success: true,
+    projectId: invite.projectId,
+    projectName: project?.name || 'Unknown',
+    message: `Successfully joined ${project?.name || 'project'}`,
+  });
 });
 
 app.listen(port, () => {

@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/models/project.dart';
 import '../../../core/models/task_item.dart';
 import '../../../core/providers/data_providers.dart';
+import '../../../core/providers/qr_providers.dart';
+import '../../../core/providers/feedback_providers.dart';
+import '../../../core/services/feedback_service.dart';
 import '../../../design_system/widgets/app_state.dart';
 import '../../../design_system/widgets/shimmer_list.dart';
 import '../../../design_system/widgets/animated_card.dart';
 import '../../../theme/tokens.dart';
+import '../../invite/presentation/qr_scan_screen.dart';
 
 class ProjectDetailScreen extends ConsumerWidget {
   const ProjectDetailScreen({
@@ -70,10 +75,14 @@ class ProjectDetailScreen extends ConsumerWidget {
                 Semantics(
                   label: 'Invite member',
                   button: true,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _showInviteDialog(context),
-                    icon: const Icon(Icons.qr_code),
-                    label: const Text('Invite'),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      return OutlinedButton.icon(
+                        onPressed: () => _showInviteDialog(context, ref, projectId),
+                        icon: const Icon(Icons.qr_code),
+                        label: const Text('Invite'),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -222,68 +231,187 @@ Color _taskStatusColor(TaskStatus status) {
   }
 }
 
-Future<void> _showInviteDialog(BuildContext context) async {
-  bool copying = false;
+Future<void> _showInviteDialog(BuildContext context, WidgetRef ref, String projectId) async {
   final result = await showDialog<String>(
     context: context,
     builder: (ctx) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: const Text('Invite member'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.qr_code),
-                  title: const Text('Invite via QR code'),
-                  onTap: copying ? null : () => Navigator.of(ctx).pop('qr'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.link),
-                  title: const Text('Invite via link'),
-                  trailing: copying
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : null,
-                  onTap: copying
-                      ? null
-                      : () async {
-                          setState(() => copying = true);
-                          Navigator.of(ctx).pop('link');
-                        },
-                ),
-              ],
+      return AlertDialog(
+        title: const Text('Invite member'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.qr_code),
+              title: const Text('Show QR code'),
+              subtitle: const Text('Let others scan to join'),
+              onTap: () => Navigator.of(ctx).pop('qr_show'),
             ),
-            actions: [
-              TextButton(
-                onPressed: copying ? null : () => Navigator.of(ctx).pop(),
-                child: const Text('Close'),
-              ),
-            ],
-          );
-        },
+            ListTile(
+              leading: const Icon(Icons.qr_code_scanner),
+              title: const Text('Scan QR code'),
+              subtitle: const Text('Join another project'),
+              onTap: () => Navigator.of(ctx).pop('qr_scan'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Copy invite link'),
+              subtitle: const Text('Share via message or email'),
+              onTap: () => Navigator.of(ctx).pop('link'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
       );
     },
   );
 
-  if (result == null) return;
+  if (result == null || !context.mounted) return;
+
+  if (result == 'qr_show') {
+    // Generate and show QR code
+    await _showQRCode(context, ref, projectId);
+  } else if (result == 'qr_scan') {
+    // Open QR scanner
+    await _scanQRCode(context, ref);
+  } else if (result == 'link') {
+    // Copy invite link
+    final qrGenService = ref.read(qrGenerationServiceProvider);
+    final projectIdInt = int.tryParse(projectId);
+    if (projectIdInt == null) return;
+
+    final inviteData = qrGenService.generateInvite(projectIdInt);
+    await Clipboard.setData(ClipboardData(text: inviteData.url));
+
+    await ref.read(feedbackServiceProvider).trigger(FeedbackType.success);
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Invite link copied to clipboard')),
+    );
+  }
+}
+
+Future<void> _showQRCode(BuildContext context, WidgetRef ref, String projectId) async {
+  final qrGenService = ref.read(qrGenerationServiceProvider);
+  final projectIdInt = int.tryParse(projectId);
+  if (projectIdInt == null) return;
+
+  final inviteData = qrGenService.generateInvite(projectIdInt);
+
+  await ref.read(feedbackServiceProvider).trigger(FeedbackType.mediumImpact);
+
   if (!context.mounted) return;
 
-  String message = 'Invite sent';
-  if (result == 'link') {
-    const link = 'https://example.com/invite/ABC123';
-    await Clipboard.setData(const ClipboardData(text: link));
-    message = 'Invite link copied';
-  } else if (result == 'qr') {
-    message = 'QR generated';
+  await showDialog(
+    context: context,
+    builder: (ctx) {
+      return AlertDialog(
+        title: const Text('Project Invite QR Code'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // QR Code
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade300, width: 2),
+              ),
+              child: QrImageView(
+                data: inviteData.url,
+                version: QrVersions.auto,
+                size: 200,
+                backgroundColor: Colors.white,
+                errorCorrectionLevel: QrErrorCorrectLevel.H,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Others can scan this QR code to join the project',
+              style: Theme.of(ctx).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Token: ${inviteData.token.substring(0, 8)}...',
+              style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
+                    color: Colors.grey,
+                    fontFamily: 'monospace',
+                  ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: inviteData.url));
+              await ref.read(feedbackServiceProvider).trigger(FeedbackType.lightTap);
+              if (!ctx.mounted) return;
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                const SnackBar(content: Text('Link copied to clipboard')),
+              );
+            },
+            child: const Text('Copy Link'),
+          ),
+          FilledButton(
+            onPressed: () {
+              ref.read(feedbackServiceProvider).trigger(FeedbackType.lightTap);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Done'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+Future<void> _scanQRCode(BuildContext context, WidgetRef ref) async {
+  // Check camera permission first
+  final qrScanService = ref.read(qrScanServiceProvider);
+  final hasPermission = await qrScanService.hasPermission();
+
+  if (!hasPermission) {
+    if (!context.mounted) return;
+    final granted = await qrScanService.requestPermission();
+    if (!granted) {
+      if (!context.mounted) return;
+      await ref.read(feedbackServiceProvider).trigger(FeedbackType.warning);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Camera permission is required to scan QR codes'),
+        ),
+      );
+      return;
+    }
   }
+
+  if (!context.mounted) return;
+
+  // Open QR scanner screen
+  final inviteData = await Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => const QRScanScreen(),
+    ),
+  );
+
+  if (inviteData == null || !context.mounted) return;
+
+  // TODO: Process invite (join project)
+  // For now, just show success message
+  await ref.read(feedbackServiceProvider).trigger(FeedbackType.success);
+
   if (!context.mounted) return;
   ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text(message)),
+    SnackBar(
+      content: Text('Scanned invite for project #${inviteData.projectId}'),
+    ),
   );
 }

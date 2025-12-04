@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Camera permission for QR code scanning -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Vibration permission (already added) -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    
     <application
         android:label="taskflow"
         android:name="${applicationName}"
