@@ -63,8 +63,9 @@ class ProfileScreen extends StatelessWidget {
               ),
               _ProfileTile(
                 icon: Icons.color_lens_outlined,
-                title: 'Change Theme',
-                subtitle: 'Pick a color swatch',
+                title: 'Theme Customization',
+                subtitle: 'Colors, gradients, and visual effects',
+                route: '/settings/theme',
               ),
               _ProfileTile(
                 icon: Icons.group_outlined,

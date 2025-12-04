@@ -6,11 +6,17 @@ import '../../../design_system/widgets/app_scaffold.dart';
 import '../../../design_system/widgets/expandable_fab.dart';
 import '../../../theme/gradients.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.child, required this.location});
 
   final Widget child;
   final String location;
+
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
 
   static const _items = <_NavItem>[
     _NavItem(label: 'Chat', icon: Icons.chat_bubble_outline, path: '/chat'),
@@ -26,10 +32,36 @@ class AppShell extends StatelessWidget {
     return 0; // chat default
   }
 
+  void _navigateToIndex(int index) {
+    if (index >= 0 && index < _items.length) {
+      final target = _items[index];
+      if (target.path != widget.location) {
+        context.go(target.path);
+      }
+    }
+  }
+
+  void _onHorizontalSwipe(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    
+    // Require minimum swipe velocity
+    if (velocity.abs() < 500) return;
+
+    final currentIndex = _locationToIndex(widget.location);
+    
+    if (velocity < 0) {
+      // Swipe left - go to next page
+      _navigateToIndex(currentIndex + 1);
+    } else {
+      // Swipe right - go to previous page
+      _navigateToIndex(currentIndex - 1);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final selectedIndex = _locationToIndex(location);
-    final isProjectsScreen = location.startsWith('/projects') && !location.contains('/projects/');
+    final selectedIndex = _locationToIndex(widget.location);
+    final isProjectsScreen = widget.location.startsWith('/projects') && !widget.location.contains('/projects/');
 
     return AppScaffold(
       child: Scaffold(
@@ -54,26 +86,30 @@ class AppShell extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.md,
-                  ),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    transitionBuilder: (widget, animation) {
-                      final slide = Tween<Offset>(
-                        begin: const Offset(0, 0.02),
-                        end: Offset.zero,
-                      ).animate(animation);
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(position: slide, child: widget),
-                      );
-                    },
-                    child: child,
+                child: GestureDetector(
+                  onHorizontalDragEnd: _onHorizontalSwipe,
+                  behavior: HitTestBehavior.translucent,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.md,
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      transitionBuilder: (widget, animation) {
+                        final slide = Tween<Offset>(
+                          begin: const Offset(0, 0.02),
+                          end: Offset.zero,
+                        ).animate(animation);
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(position: slide, child: widget),
+                        );
+                      },
+                      child: widget.child,
+                    ),
                   ),
                 ),
               ),
@@ -82,12 +118,7 @@ class AppShell extends StatelessWidget {
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: selectedIndex,
-          onDestinationSelected: (index) {
-            final target = _items[index];
-            if (target.path != location) {
-              context.go(target.path);
-            }
-          },
+          onDestinationSelected: _navigateToIndex,
           destinations: [
             for (final item in _items)
               NavigationDestination(

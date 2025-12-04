@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io' show Platform;
 
 import 'app_router.dart';
 import 'core/providers/feedback_providers.dart';
 import 'core/providers/deep_link_providers.dart';
 import 'core/services/deep_link_service.dart';
-import 'theme/app_theme.dart';
+import 'theme/ios_glass_theme.dart';
+import 'theme/fluent_theme.dart';
 
 void main() {
   runApp(const ProviderScope(child: TaskflowApp()));
@@ -105,12 +107,16 @@ class _TaskflowAppState extends ConsumerState<TaskflowApp> {
   @override
   Widget build(BuildContext context) {
     final router = createRouter();
+    
+    // Use iOS glass theme for iOS, Fluent theme for Android
+    final bool isIOS = Platform.isIOS;
+    
     return MaterialApp.router(
       title: 'Taskflow',
       debugShowCheckedModeBanner: false,
-      theme: buildLightTheme(),
-      darkTheme: buildDarkTheme(),
-      themeMode: ThemeMode.dark,
+      theme: isIOS ? iOSGlassTheme.light() : FluentTheme.light(),
+      darkTheme: isIOS ? iOSGlassTheme.dark() : FluentTheme.dark(),
+      themeMode: ThemeMode.light,
       routerConfig: router,
       builder: (context, child) {
         // Store navigator key for deep link navigation

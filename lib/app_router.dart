@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'core/models/app_notification.dart';
 import 'core/models/project.dart';
@@ -10,6 +11,8 @@ import 'features/notifications/presentation/notification_detail_screen.dart';
 import 'features/inbox/presentation/inbox_screen.dart';
 import 'features/invite/presentation/invite_accept_screen.dart';
 import 'features/profile/presentation/profile_screen.dart';
+import 'features/profile/presentation/enhanced_profile_screen.dart';
+import 'features/profile/presentation/signup_screen.dart';
 import 'features/projects/presentation/projects_screen.dart';
 import 'features/projects/presentation/project_detail_screen.dart';
 import 'features/projects/presentation/task_form_screen.dart';
@@ -19,12 +22,16 @@ import 'features/requests/presentation/request_detail_screen.dart';
 import 'features/schedule/presentation/calendar_screen.dart';
 import 'features/settings/presentation/feedback_settings_screen.dart';
 import 'features/settings/presentation/accessibility_settings_screen.dart';
+import 'features/settings/presentation/theme_customization_screen.dart';
+import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/shell/presentation/app_shell.dart';
 import 'features/chat/presentation/chat_screen.dart';
+import 'features/chat/presentation/enhanced_chat_screen.dart';
 
 GoRouter createRouter() {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
   final shellNavigatorKey = GlobalKey<NavigatorState>();
+  final storage = const FlutterSecureStorage();
 
   CustomTransitionPage<T> fadeSlide<T>(Widget child) {
     return CustomTransitionPage<T>(
@@ -48,6 +55,19 @@ GoRouter createRouter() {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/calendar',
+    redirect: (context, state) async {
+      // Check if onboarding is complete
+      final onboardingComplete = await storage.read(key: 'onboarding_complete');
+      final isOnSignupPage = state.matchedLocation == '/signup';
+      
+      // If not completed and not on signup page, redirect to signup
+      if (onboardingComplete != 'true' && !isOnSignupPage) {
+        return '/signup';
+      }
+      
+      // Allow navigation
+      return null;
+    },
     routes: [
       ShellRoute(
         navigatorKey: shellNavigatorKey,
@@ -117,12 +137,12 @@ GoRouter createRouter() {
           GoRoute(
             path: '/profile',
             name: 'profile',
-            pageBuilder: (context, state) => fadeSlide(const ProfileScreen()),
+            pageBuilder: (context, state) => fadeSlide(const EnhancedProfileScreen()),
           ),
           GoRoute(
             path: '/chat',
             name: 'chat',
-            builder: (context, state) => const ChatScreen(),
+            builder: (context, state) => const EnhancedChatScreen(),
             routes: [
               GoRoute(
                 path: ':channelId',
@@ -130,7 +150,7 @@ GoRouter createRouter() {
                 builder: (context, state) {
                   final channelId = state.pathParameters['channelId']!;
                   final label = state.extra is String ? state.extra as String : 'Chat';
-                  return ChatThreadScreen(channelId: channelId, label: label);
+                  return EnhancedChatThreadScreen(channelId: channelId, label: label);
                 },
               ),
             ],
@@ -177,6 +197,21 @@ GoRouter createRouter() {
         path: '/settings/accessibility',
         name: 'accessibility-settings',
         builder: (context, state) => const AccessibilitySettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/theme',
+        name: 'theme-customization',
+        builder: (context, state) => const ThemeCustomizationScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/signup',
+        name: 'signup',
+        builder: (context, state) => const SignupScreen(),
       ),
       // Deep link routes (outside shell)
       GoRoute(

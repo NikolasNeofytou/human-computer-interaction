@@ -51,6 +51,10 @@ dependencies:
   permission_handler: ^11.3.1
   app_links: ^3.5.1
   shimmer: ^3.0.0
+  file_picker: ^8.1.4
+  flutter_sound: ^9.4.10
+  path_provider: ^2.1.4
+  image_picker: ^1.0.7
 
 dev_dependencies:
   flutter_test:
