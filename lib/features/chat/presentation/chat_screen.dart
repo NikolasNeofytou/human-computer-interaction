@@ -152,6 +152,7 @@ class ChatThreadScreen extends ConsumerStatefulWidget {
 class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
   final _controller = TextEditingController();
   bool _sending = false;
+  bool get _canSend => _controller.text.trim().isNotEmpty && !_sending;
 
   @override
   void dispose() {
@@ -160,9 +161,8 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
   }
 
   Future<void> _send() async {
-    if (_sending) return;
+    if (!_canSend) return;
     ref.read(_chatThreadsProvider.notifier).send(widget.channelId, _controller.text);
-    if (_controller.text.trim().isEmpty) return;
     setState(() => _sending = true);
     _controller.clear();
     await Future.delayed(const Duration(milliseconds: 250));
@@ -216,7 +216,7 @@ class _ChatThreadScreenState extends ConsumerState<ChatThreadScreen> {
                   label: 'Send message',
                   button: true,
                   child: FilledButton(
-                    onPressed: _sending ? null : _send,
+                    onPressed: _canSend ? _send : null,
                     child: _sending
                         ? const SizedBox(
                             width: 18,

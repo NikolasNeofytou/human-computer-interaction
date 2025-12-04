@@ -11,6 +11,8 @@ import '../../../design_system/widgets/app_state.dart';
 import '../../../design_system/widgets/shimmer_list.dart';
 import '../../../design_system/widgets/animated_card.dart';
 import '../../../theme/tokens.dart';
+import '_action_background.dart';
+import '../../../core/models/request.dart';
 
 class RequestsScreen extends ConsumerWidget {
   const RequestsScreen({super.key});
@@ -49,17 +51,56 @@ class RequestsScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final item = items[index];
                   final statusColor = _statusColor(item.status);
-                  return _RequestCard(
-                    title: item.title,
-                    statusLabel: _statusLabel(item.status),
-                    statusColor: statusColor,
-                    onAccept: () => ref
-                        .read(requestsControllerProvider.notifier)
-                        .accept(item.id),
-                    onReject: () => ref
-                        .read(requestsControllerProvider.notifier)
-                        .reject(item.id),
-                    onTap: () => context.go('/requests/${item.id}', extra: item),
+                  final snapshot = List<Request>.from(items);
+                  return Dismissible(
+                    key: ValueKey(item.id),
+                    background: _ActionBackground(
+                      color: AppColors.success,
+                      icon: Icons.check,
+                      label: 'Accept',
+                      alignment: Alignment.centerLeft,
+                    ),
+                    secondaryBackground: _ActionBackground(
+                      color: AppColors.error,
+                      icon: Icons.close,
+                      label: 'Reject',
+                      alignment: Alignment.centerRight,
+                    ),
+                    confirmDismiss: (direction) async {
+                      if (direction == DismissDirection.startToEnd) {
+                        ref.read(requestsControllerProvider.notifier).accept(item.id);
+                        _showUndo(
+                          context,
+                          message: 'Request accepted',
+                          onUndo: () => ref
+                              .read(requestsControllerProvider.notifier)
+                              .restore(snapshot),
+                        );
+                      } else {
+                        ref.read(requestsControllerProvider.notifier).reject(item.id);
+                        _showUndo(
+                          context,
+                          message: 'Request rejected',
+                          onUndo: () => ref
+                              .read(requestsControllerProvider.notifier)
+                              .restore(snapshot),
+                        );
+                      }
+                      return false; // keep in list; state will refresh
+                    },
+                    child: _RequestCard(
+                      title: item.title,
+                      statusLabel: _statusLabel(item.status),
+                      statusColor: statusColor,
+                      onAccept: () => ref
+                          .read(requestsControllerProvider.notifier)
+                          .accept(item.id),
+                      onReject: () => ref
+                          .read(requestsControllerProvider.notifier)
+                          .reject(item.id),
+                      onTap: () =>
+                          context.go('/requests/${item.id}', extra: item),
+                    ),
                   );
                 },
               );
@@ -74,6 +115,16 @@ class RequestsScreen extends ConsumerWidget {
       ],
     );
   }
+}
+
+void _showUndo(BuildContext context,
+    {required String message, required VoidCallback onUndo}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      action: SnackBarAction(label: 'Undo', onPressed: onUndo),
+    ),
+  );
 }
 
 class _RequestCard extends StatefulWidget {

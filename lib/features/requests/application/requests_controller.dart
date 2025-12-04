@@ -76,4 +76,8 @@ class RequestsController extends AsyncNotifier<List<Request>> {
     ];
     state = AsyncData(updated);
   }
+
+  void restore(List<Request> snapshot) {
+    state = AsyncData(snapshot);
+  }
 }
