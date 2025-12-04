@@ -22,7 +22,7 @@ class CustomRefreshIndicator extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return RefreshIndicator(
       onRefresh: () async {
-        await ref.read(feedbackServiceProvider).trigger(FeedbackType.impact);
+        await ref.read(feedbackServiceProvider).trigger(FeedbackType.mediumImpact);
         await onRefresh();
         await ref.read(feedbackServiceProvider).trigger(FeedbackType.success);
       },

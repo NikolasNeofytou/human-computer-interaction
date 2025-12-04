@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../../../core/models/task_item.dart';
 import '../../../core/providers/data_providers.dart';
+import '../../../core/utils/memoization.dart';
+import '../../../core/utils/debouncer.dart';
 import '../../../design_system/widgets/app_state.dart';
 import '../../../design_system/widgets/skeleton_loader.dart';
 import '../../../design_system/widgets/animated_card.dart';
@@ -26,6 +28,8 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   late DateTime _currentMonth;
   DateTime? _selectedDate;
+  final _searchDebouncer = Debouncer(delay: const Duration(milliseconds: 300));
+  final _filterCache = ListFilterCache<TaskItem>();
 
   @override
   void initState() {
@@ -52,6 +56,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       _currentMonth = DateTime(now.year, now.month);
       _selectedDate = now;
     });
+  }
+
+  @override
+  void dispose() {
+    _searchDebouncer.dispose();
+    _filterCache.clear();
+    super.dispose();
   }
 
   List<TaskItem> _getTasksForDate(List<TaskItem> tasks, DateTime date) {
@@ -612,12 +623,5 @@ class _CalendarItem extends StatelessWidget {
 }
 
 Color _statusColor(TaskStatus status) {
-  switch (status) {
-    case TaskStatus.pending:
-      return AppColors.warning;
-    case TaskStatus.done:
-      return AppColors.success;
-    case TaskStatus.blocked:
-      return AppColors.error;
-  }
+  return StatusColorCache.getColor(status);
 }

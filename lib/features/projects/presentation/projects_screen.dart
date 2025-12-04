@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/project.dart';
 import '../../../core/models/task_item.dart';
 import '../../../core/providers/data_providers.dart';
+import '../../../core/utils/memoization.dart';
+import '../../../core/utils/debouncer.dart';
 import '../../../design_system/widgets/animated_card.dart';
 import '../../../design_system/widgets/app_pill.dart';
 import '../../../design_system/widgets/app_state.dart';
@@ -26,10 +28,12 @@ class ProjectsScreen extends ConsumerStatefulWidget {
 
 class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   final _searchCtrl = TextEditingController();
+  final _searchDebouncer = Debouncer(delay: const Duration(milliseconds: 300));
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _searchDebouncer.dispose();
     super.dispose();
   }
 
@@ -501,23 +505,9 @@ String _statusLabel(ProjectStatus status) {
 }
 
 Color _statusColor(ProjectStatus status) {
-  switch (status) {
-    case ProjectStatus.onTrack:
-      return AppColors.success;
-    case ProjectStatus.dueSoon:
-      return AppColors.warning;
-    case ProjectStatus.blocked:
-      return AppColors.error;
-  }
+  return ProjectStatusColorCache.getColor(status.name);
 }
 
 Color _taskStatusColor(TaskStatus status) {
-  switch (status) {
-    case TaskStatus.pending:
-      return AppColors.warning;
-    case TaskStatus.done:
-      return AppColors.success;
-    case TaskStatus.blocked:
-      return AppColors.error;
-  }
+  return StatusColorCache.getColor(status);
 }

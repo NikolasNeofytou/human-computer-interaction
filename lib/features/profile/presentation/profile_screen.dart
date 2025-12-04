@@ -56,6 +56,12 @@ class ProfileScreen extends StatelessWidget {
                 route: '/settings/feedback',
               ),
               _ProfileTile(
+                icon: Icons.accessibility_new,
+                title: 'Accessibility',
+                subtitle: 'High contrast, text size, color blind mode',
+                route: '/settings/accessibility',
+              ),
+              _ProfileTile(
                 icon: Icons.color_lens_outlined,
                 title: 'Change Theme',
                 subtitle: 'Pick a color swatch',

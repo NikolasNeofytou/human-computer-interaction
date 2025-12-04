@@ -18,6 +18,7 @@ import 'features/requests/presentation/requests_screen.dart';
 import 'features/requests/presentation/request_detail_screen.dart';
 import 'features/schedule/presentation/calendar_screen.dart';
 import 'features/settings/presentation/feedback_settings_screen.dart';
+import 'features/settings/presentation/accessibility_settings_screen.dart';
 import 'features/shell/presentation/app_shell.dart';
 import 'features/chat/presentation/chat_screen.dart';
 
@@ -171,6 +172,11 @@ GoRouter createRouter() {
         path: '/settings/feedback',
         name: 'feedback-settings',
         builder: (context, state) => const FeedbackSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/settings/accessibility',
+        name: 'accessibility-settings',
+        builder: (context, state) => const AccessibilitySettingsScreen(),
       ),
       // Deep link routes (outside shell)
       GoRoute(

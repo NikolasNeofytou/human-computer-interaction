@@ -54,24 +54,24 @@ final commentsRepositoryProvider = Provider<CommentsRepository>((ref) {
   return CommentsRemoteRepository(dio);
 });
 
-// Data providers using repositories
-final requestsProvider = FutureProvider<List<Request>>(
+// Data providers using repositories with autoDispose for better memory management
+final requestsProvider = FutureProvider.autoDispose<List<Request>>(
   (ref) => ref.read(requestsRepositoryProvider).fetchRequests(),
 );
 
-final notificationsProvider = FutureProvider<List<AppNotification>>(
+final notificationsProvider = FutureProvider.autoDispose<List<AppNotification>>(
   (ref) => ref.read(notificationsRepositoryProvider).fetchNotifications(),
 );
 
-final projectsProvider = FutureProvider<List<Project>>(
+final projectsProvider = FutureProvider.autoDispose<List<Project>>(
   (ref) => ref.read(projectsRepositoryProvider).fetchProjects(),
 );
 
-final calendarTasksProvider = FutureProvider<List<TaskItem>>(
+final calendarTasksProvider = FutureProvider.autoDispose<List<TaskItem>>(
   (ref) => ref.read(calendarRepositoryProvider).fetchCalendarTasks(),
 );
 
 final projectTasksProvider =
-    FutureProvider.family<List<TaskItem>, String>((ref, projectId) {
+    FutureProvider.autoDispose.family<List<TaskItem>, String>((ref, projectId) {
   return ref.read(projectsRepositoryProvider).fetchProjectTasks(projectId);
 });

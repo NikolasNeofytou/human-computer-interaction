@@ -98,7 +98,7 @@ class AppShell extends StatelessWidget {
         ),
         floatingActionButton: isProjectsScreen
             ? ExpandableFab(
-                primaryIcon: Icons.add,
+                mainIcon: Icons.add,
                 actions: [
                   FabAction(
                     icon: Icons.folder_outlined,
