@@ -8,8 +8,13 @@ import '../../../core/providers/data_providers.dart';
 import '../../../design_system/widgets/animated_card.dart';
 import '../../../design_system/widgets/app_pill.dart';
 import '../../../design_system/widgets/app_state.dart';
-import '../../../design_system/widgets/shimmer_list.dart';
+import '../../../design_system/widgets/skeleton_loader.dart';
+import '../../../design_system/widgets/expandable_fab.dart';
+import '../../../design_system/widgets/context_menu.dart';
+import '../../../design_system/widgets/custom_refresh_indicator.dart';
+import '../../../design_system/animations/micro_interactions.dart';
 import '../../../theme/tokens.dart';
+import '../../../theme/gradients.dart';
 
 /// Projects overview with board + roadmap sections.
 class ProjectsScreen extends ConsumerStatefulWidget {
@@ -212,7 +217,11 @@ class _BoardView extends ConsumerWidget {
           }).toList(),
         );
       },
-      loading: () => const AppStateView.loading(shimmer: ShimmerList()),
+      loading: () => ListView.separated(
+        itemCount: 3,
+        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+        itemBuilder: (_, __) => const ProjectCardSkeleton(),
+      ),
       error: (err, _) => AppStateView.error(message: 'Failed to load projects: $err'),
     );
   }
@@ -284,9 +293,68 @@ class _ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedCard(
-      onTap: () => context.go('/projects/${project.id}', extra: project),
-      child: Column(
+    return ContextMenuRegion(
+      items: [
+        ContextMenuItem(
+          value: 'edit',
+          icon: Icons.edit,
+          label: 'Edit Project',
+        ),
+        ContextMenuItem(
+          value: 'share',
+          icon: Icons.share,
+          label: 'Share',
+        ),
+        ContextMenuItem(
+          value: 'duplicate',
+          icon: Icons.copy,
+          label: 'Duplicate',
+        ),
+        ContextMenuItem(
+          value: 'archive',
+          icon: Icons.archive,
+          label: 'Archive',
+        ),
+        ContextMenuItem(
+          value: 'delete',
+          icon: Icons.delete,
+          label: 'Delete',
+          color: AppColors.error,
+          destructive: true,
+        ),
+      ],
+      onSelected: (value) {
+        switch (value) {
+          case 'edit':
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Edit "${project.name}"')),
+            );
+            break;
+          case 'share':
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Share functionality coming soon')),
+            );
+            break;
+          case 'duplicate':
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Duplicated "${project.name}"')),
+            );
+            break;
+          case 'archive':
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Archived "${project.name}"')),
+            );
+            break;
+          case 'delete':
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Deleted "${project.name}"')),
+            );
+            break;
+        }
+      },
+      child: AnimatedCard(
+        onTap: () => context.go('/projects/${project.id}', extra: project),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -334,6 +402,7 @@ class _ProjectCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }
@@ -410,7 +479,11 @@ class _RoadmapList extends StatelessWidget {
           ],
         );
       },
-      loading: () => const AppStateView.loading(shimmer: ShimmerList()),
+      loading: () => ListView.separated(
+        itemCount: 5,
+        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+        itemBuilder: (_, __) => const TaskCardSkeleton(),
+      ),
       error: (err, _) => AppStateView.error(message: 'Failed to load roadmap: $err'),
     );
   }

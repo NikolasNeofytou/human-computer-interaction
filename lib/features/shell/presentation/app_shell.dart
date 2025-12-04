@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../theme/tokens.dart';
 import '../../../design_system/widgets/app_scaffold.dart';
+import '../../../design_system/widgets/expandable_fab.dart';
+import '../../../theme/gradients.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child, required this.location});
@@ -27,6 +29,7 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _locationToIndex(location);
+    final isProjectsScreen = location.startsWith('/projects') && !location.contains('/projects/');
 
     return AppScaffold(
       child: Scaffold(
@@ -93,6 +96,33 @@ class AppShell extends StatelessWidget {
               ),
           ],
         ),
+        floatingActionButton: isProjectsScreen
+            ? ExpandableFab(
+                primaryIcon: Icons.add,
+                actions: [
+                  FabAction(
+                    icon: Icons.folder_outlined,
+                    label: 'New Project',
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('New project creation coming soon')),
+                    ),
+                  ),
+                  FabAction(
+                    icon: Icons.task_alt,
+                    label: 'Quick Task',
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Quick task creation coming soon')),
+                    ),
+                  ),
+                  FabAction(
+                    icon: Icons.qr_code_scanner,
+                    label: 'Scan QR',
+                    onTap: () => context.push('/qr-scanner'),
+                    color: AppColors.accent,
+                  ),
+                ],
+              )
+            : null,
       ),
     );
   }

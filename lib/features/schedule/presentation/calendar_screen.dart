@@ -6,9 +6,15 @@ import 'package:intl/intl.dart';
 import '../../../core/models/task_item.dart';
 import '../../../core/providers/data_providers.dart';
 import '../../../design_system/widgets/app_state.dart';
-import '../../../design_system/widgets/shimmer_list.dart';
+import '../../../design_system/widgets/skeleton_loader.dart';
 import '../../../design_system/widgets/animated_card.dart';
+import '../../../design_system/widgets/swipeable_card.dart';
+import '../../../design_system/widgets/context_menu.dart';
+import '../../../design_system/widgets/custom_refresh_indicator.dart';
+import '../../../design_system/animations/hero_transitions.dart';
+import '../../../design_system/animations/micro_interactions.dart';
 import '../../../theme/tokens.dart';
+import '../../../theme/gradients.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -99,10 +105,33 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               tooltip: 'Next month',
             ),
             const SizedBox(width: AppSpacing.sm),
-            FilledButton.tonalIcon(
-              onPressed: _goToToday,
-              icon: const Icon(Icons.today),
-              label: const Text('Today'),
+            PressableScale(
+              onTap: _goToToday,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  gradient: AppGradients.primary,
+                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                  boxShadow: AppShadows.soft,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.today, color: Colors.white, size: 18),
+                    const SizedBox(width: AppSpacing.xs),
+                    const Text(
+                      'Today',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -111,7 +140,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         // Calendar grid
         asyncTasks.when(
           data: (tasks) {
-            return _CalendarGrid(
+            return CustomRefreshIndicator(
+              onRefresh: () async {
+                // Refresh calendar data
+                ref.invalidate(calendarTasksProvider);
+                await Future.delayed(const Duration(milliseconds: 500));
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: _CalendarGrid(
               currentMonth: _currentMonth,
               selectedDate: _selectedDate,
               tasks: tasks,
@@ -120,11 +157,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   _selectedDate = date;
                 });
               },
+            ),
+              ),
             );
           },
           loading: () => const SizedBox(
             height: 300,
-            child: Center(child: CircularProgressIndicator()),
+            child: CalendarGridSkeleton(),
           ),
           error: (err, _) => SizedBox(
             height: 300,
@@ -172,16 +211,83 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         itemBuilder: (context, index) {
                           final item = dayTasks[index];
                           final color = _statusColor(item.status);
-                          return _CalendarItem(
-                            title: item.title,
-                            color: color,
-                            status: item.status,
-                            onTap: item.projectId == null
-                                ? null
-                                : () => context.go(
-                                      '/projects/${item.projectId}/task/${item.id}',
-                                      extra: item,
-                                    ),
+                          return SwipeableCard(
+                            onComplete: () {
+                              // Mark task as complete
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('"${item.title}" marked as complete')),
+                              );
+                            },
+                            onDelete: () {
+                              // Delete task
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('"${item.title}" deleted')),
+                              );
+                            },
+                            child: ContextMenuRegion(
+                              items: [
+                                ContextMenuItem(
+                                  value: 'edit',
+                                  icon: Icons.edit,
+                                  label: 'Edit Task',
+                                ),
+                                ContextMenuItem(
+                                  value: 'share',
+                                  icon: Icons.share,
+                                  label: 'Share',
+                                ),
+                                ContextMenuItem(
+                                  value: 'duplicate',
+                                  icon: Icons.copy,
+                                  label: 'Duplicate',
+                                ),
+                                ContextMenuItem(
+                                  value: 'delete',
+                                  icon: Icons.delete,
+                                  label: 'Delete',
+                                  color: AppColors.error,
+                                  destructive: true,
+                                ),
+                              ],
+                              onSelected: (value) {
+                                switch (value) {
+                                  case 'edit':
+                                    if (item.projectId != null) {
+                                      context.go('/projects/${item.projectId}/task/${item.id}/edit');
+                                    }
+                                    break;
+                                  case 'share':
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Share functionality coming soon')),
+                                    );
+                                    break;
+                                  case 'duplicate':
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Duplicated "${item.title}"')),
+                                    );
+                                    break;
+                                  case 'delete':
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Deleted "${item.title}"')),
+                                    );
+                                    break;
+                                }
+                              },
+                              child: TaskCardHero(
+                                tag: 'task_${item.id}',
+                                child: _CalendarItem(
+                              title: item.title,
+                              color: color,
+                              status: item.status,
+                              onTap: item.projectId == null
+                                  ? null
+                                  : () => context.go(
+                                        '/projects/${item.projectId}/task/${item.id}',
+                                        extra: item,
+                                      ),
+                                ),
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -189,8 +295,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ],
               );
             },
-            loading: () => const AppStateView.loading(
-              shimmer: ShimmerList(),
+            loading: () => ListView.separated(
+              itemCount: 3,
+              separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+              itemBuilder: (_, __) => const TaskCardSkeleton(),
             ),
             error: (err, _) => AppStateView.error(message: 'Failed to load tasks: $err'),
           ),

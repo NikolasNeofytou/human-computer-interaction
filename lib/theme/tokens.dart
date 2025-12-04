@@ -63,6 +63,46 @@ class AppShadows {
       offset: Offset(0, 8),
     ),
   ];
+
+  /// Premium soft shadow for elevated cards
+  static const soft = [
+    BoxShadow(
+      color: Color(0x1A000000),
+      blurRadius: 24,
+      offset: Offset(0, 8),
+      spreadRadius: -8,
+    ),
+  ];
+
+  /// Colored shadow for primary elements
+  static List<BoxShadow> colored(Color color) => [
+        BoxShadow(
+          color: color.withOpacity(0.3),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+          spreadRadius: -4,
+        ),
+      ];
+
+  /// Inner shadow effect
+  static const inner = [
+    BoxShadow(
+      color: Color(0x0D000000),
+      blurRadius: 4,
+      offset: Offset(0, 2),
+      spreadRadius: 0,
+    ),
+  ];
+
+  /// Glow effect for focus states
+  static List<BoxShadow> glow(Color color) => [
+        BoxShadow(
+          color: color.withOpacity(0.4),
+          blurRadius: 16,
+          offset: Offset.zero,
+          spreadRadius: 2,
+        ),
+      ];
 }
 
 /// Modern sans typography system; add the font if bundling "Inter".
