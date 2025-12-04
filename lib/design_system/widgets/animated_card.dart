@@ -1,33 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/feedback_providers.dart';
+import '../../core/services/feedback_service.dart';
 import '../../theme/tokens.dart';
 
 /// Card with press scale animation and hover/press visual feedback.
-class AnimatedCard extends StatefulWidget {
+class AnimatedCard extends ConsumerStatefulWidget {
   const AnimatedCard({
     super.key,
     required this.child,
     this.onTap,
     this.padding = const EdgeInsets.all(AppSpacing.lg),
     this.backgroundGradient,
+    this.enableFeedback = true,
   });
 
   final Widget child;
   final VoidCallback? onTap;
   final EdgeInsets padding;
   final Gradient? backgroundGradient;
+  final bool enableFeedback;
 
   @override
-  State<AnimatedCard> createState() => _AnimatedCardState();
+  ConsumerState<AnimatedCard> createState() => _AnimatedCardState();
 }
 
-class _AnimatedCardState extends State<AnimatedCard> with SingleTickerProviderStateMixin {
+class _AnimatedCardState extends ConsumerState<AnimatedCard>
+    with SingleTickerProviderStateMixin {
   double _scale = 1.0;
 
   void _setPressed(bool pressed) {
     setState(() {
       _scale = pressed ? 0.97 : 1.0;
     });
+  }
+
+  void _handleTap() async {
+    if (widget.onTap == null) return;
+
+    if (widget.enableFeedback) {
+      await ref.read(feedbackServiceProvider).trigger(FeedbackType.selection);
+    }
+
+    widget.onTap!();
   }
 
   @override
@@ -42,7 +58,7 @@ class _AnimatedCardState extends State<AnimatedCard> with SingleTickerProviderSt
         onTapDown: (_) => _setPressed(true),
         onTapCancel: () => _setPressed(false),
         onTapUp: (_) => _setPressed(false),
-        onTap: widget.onTap,
+        onTap: _handleTap,
         child: AnimatedScale(
           duration: const Duration(milliseconds: 120),
           scale: _scale,

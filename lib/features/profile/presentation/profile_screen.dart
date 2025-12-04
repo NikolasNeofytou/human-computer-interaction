@@ -50,6 +50,12 @@ class ProfileScreen extends StatelessWidget {
                 route: '/chat',
               ),
               _ProfileTile(
+                icon: Icons.vibration,
+                title: 'Haptics & Sound',
+                subtitle: 'Feedback settings',
+                route: '/settings/feedback',
+              ),
+              _ProfileTile(
                 icon: Icons.color_lens_outlined,
                 title: 'Change Theme',
                 subtitle: 'Pick a color swatch',

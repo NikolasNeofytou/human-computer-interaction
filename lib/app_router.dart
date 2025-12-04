@@ -16,6 +16,7 @@ import 'features/projects/presentation/task_detail_screen.dart';
 import 'features/requests/presentation/requests_screen.dart';
 import 'features/requests/presentation/request_detail_screen.dart';
 import 'features/schedule/presentation/calendar_screen.dart';
+import 'features/settings/presentation/feedback_settings_screen.dart';
 import 'features/shell/presentation/app_shell.dart';
 import 'features/chat/presentation/chat_screen.dart';
 
@@ -164,6 +165,11 @@ GoRouter createRouter() {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/settings/feedback',
+        name: 'feedback-settings',
+        builder: (context, state) => const FeedbackSettingsScreen(),
       ),
     ],
   );
