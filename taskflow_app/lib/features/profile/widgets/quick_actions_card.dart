@@ -38,10 +38,10 @@ class QuickActionsCard extends StatelessWidget {
                   onTap: () => context.push('/projects'),
                 ),
                 _QuickActionChip(
-                  icon: Icons.people_alt,
-                  label: 'Invite Team',
+                  icon: Icons.qr_code_scanner,
+                  label: 'QR Invite',
                   color: Colors.purple,
-                  onTap: () => context.push('/invite'),
+                  onTap: () => context.push('/profile/invite'),
                 ),
                 _QuickActionChip(
                   icon: Icons.calendar_today,

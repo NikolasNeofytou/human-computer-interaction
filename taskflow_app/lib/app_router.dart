@@ -17,6 +17,7 @@ import 'features/profile/presentation/personal_qr_screen.dart';
 import 'features/profile/presentation/scan_teammate_screen.dart';
 import 'features/profile/presentation/team_screen.dart';
 import 'features/profile/presentation/signup_screen.dart';
+// import 'features/invite/presentation/unified_qr_screen.dart'; // TODO: Fix and re-enable
 import 'features/projects/presentation/projects_screen.dart';
 import 'features/projects/presentation/project_detail_screen.dart';
 import 'features/projects/presentation/task_form_screen.dart';
@@ -164,6 +165,11 @@ GoRouter createRouter() {
                 name: 'scan-teammate',
                 builder: (context, state) => const ScanTeammateScreen(),
               ),
+              // GoRoute(
+              //   path: 'invite',
+              //   name: 'unified-qr',
+              //   builder: (context, state) => const UnifiedQRScreen(),
+              // ),
             ],
           ),
           GoRoute(
