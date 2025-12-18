@@ -1,7 +1,8 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:io' if (dart.library.html) 'dart:html' as platform;
 
 import '../../../theme/tokens.dart';
 import '../models/badge_model.dart';
@@ -140,16 +141,22 @@ class _ProfileHeader extends ConsumerWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   border: Border.all(color: AppColors.primary, width: 2),
                 ),
                 child: profile.photoPath != null
                     ? ClipOval(
-                        child: Image.file(
-                          File(profile.photoPath!),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _defaultAvatar(),
-                        ),
+                        child: kIsWeb
+                            ? Image.network(
+                                profile.photoPath!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _defaultAvatar(),
+                              )
+                            : Image.network(
+                                profile.photoPath!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _defaultAvatar(),
+                              ),
                       )
                     : _defaultAvatar(),
               ),
@@ -452,7 +459,7 @@ class _BadgesSheet extends ConsumerWidget {
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadii.lg)),
       ),
       child: Column(
         children: [

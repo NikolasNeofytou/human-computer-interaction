@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'dart:html' as platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../../theme/tokens.dart';
@@ -330,16 +331,27 @@ class _ImageGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadii.sm),
-      child: Image.file(
-        File(message.filePath!),
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: Theme.of(context).colorScheme.surfaceContainerHigh,
-            child: const Icon(Icons.broken_image),
-          );
-        },
-      ),
+      child: kIsWeb
+          ? Image.network(
+              message.filePath!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                  child: const Icon(Icons.broken_image),
+                );
+              },
+            )
+          : Image.network(
+              message.filePath!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                  child: const Icon(Icons.broken_image),
+                );
+              },
+            ),
     );
   }
 }

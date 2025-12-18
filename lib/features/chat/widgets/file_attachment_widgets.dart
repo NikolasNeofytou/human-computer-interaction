@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) 'dart:html' as platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -163,19 +164,33 @@ class FileAttachmentPreview extends StatelessWidget {
               maxWidth: 250,
               maxHeight: 250,
             ),
-            child: Image.file(
-              File(filePath),
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return _FileCard(
-                  icon: _getIcon(),
-                  iconColor: _getIconColor(),
-                  fileName: fileName,
-                  fileSize: fileSize,
-                  isMe: isMe,
-                );
-              },
-            ),
+            child: kIsWeb
+                ? Image.network(
+                    filePath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _FileCard(
+                        icon: _getIcon(),
+                        iconColor: _getIconColor(),
+                        fileName: fileName,
+                        fileSize: fileSize,
+                        isMe: isMe,
+                      );
+                    },
+                  )
+                : Image.network(
+                    filePath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _FileCard(
+                        icon: _getIcon(),
+                        iconColor: _getIconColor(),
+                        fileName: fileName,
+                        fileSize: fileSize,
+                        isMe: isMe,
+                      );
+                    },
+                  ),
           ),
         ),
       );

@@ -33,10 +33,10 @@ class FluentTheme {
       scaffoldBackgroundColor: FluentColors.gray20,
       
       // Card theme with Fluent elevation
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         color: Colors.white,
-        shadowColor: Colors.black.withOpacity(0.07),
+        shadowColor: Colors.black.withValues(alpha: 0.07),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(FluentBorderRadius.large),
           side: BorderSide(
@@ -232,10 +232,10 @@ class FluentTheme {
       ),
       
       // Dialog with Fluent elevation
-      dialogTheme: DialogTheme(
+      dialogTheme: DialogThemeData(
         elevation: 0,
         backgroundColor: Colors.white,
-        shadowColor: Colors.black.withOpacity(0.11),
+        shadowColor: Colors.black.withValues(alpha: 0.11),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(FluentBorderRadius.large),
           side: BorderSide(
