@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/models/task_item.dart';
+import '../../../core/models/user.dart';
+import '../../../core/providers/data_providers.dart';
 import '../../../theme/tokens.dart';
+import '../../../theme/gradients.dart';
 
-class TaskFormScreen extends StatefulWidget {
+class TaskFormScreen extends ConsumerStatefulWidget {
   const TaskFormScreen({
     super.key,
     required this.projectId,
@@ -15,13 +19,15 @@ class TaskFormScreen extends StatefulWidget {
   final TaskItem? initialTask;
 
   @override
-  State<TaskFormScreen> createState() => _TaskFormScreenState();
+  ConsumerState<TaskFormScreen> createState() => _TaskFormScreenState();
 }
 
-class _TaskFormScreenState extends State<TaskFormScreen> {
+class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   late final TextEditingController _titleController;
   DateTime? _dueDate;
   TaskStatus _status = TaskStatus.pending;
+  User? _assignedUser;
+  bool _sendAsRequest = false;
   bool _saving = false;
 
   @override
@@ -63,10 +69,18 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
     setState(() => _saving = true);
     await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
+    
+    String message;
+    if (_assignedUser != null && _sendAsRequest) {
+      message = 'Task assignment request sent to ${_assignedUser!.name}';
+    } else if (_assignedUser != null) {
+      message = 'Task assigned to ${_assignedUser!.name}';
+    } else {
+      message = widget.initialTask == null ? 'Task created' : 'Task updated';
+    }
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(widget.initialTask == null ? 'Task created' : 'Task updated'),
-      ),
+      SnackBar(content: Text(message)),
     );
     context.pop();
   }
@@ -74,6 +88,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.initialTask != null;
+    final asyncUsers = ref.watch(usersProvider);
+    
     return Scaffold(
       appBar: AppBar(
         title: Text(isEdit ? 'Edit Task' : 'New Task'),
@@ -131,6 +147,145 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                 decoration: const InputDecoration(labelText: 'Status'),
               ),
             ),
+            const SizedBox(height: AppSpacing.lg),
+            const Divider(),
+            const SizedBox(height: AppSpacing.md),
+            
+            // Assignee section
+            Row(
+              children: [
+                Icon(Icons.person_add, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'Assign to Team Member',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            
+            asyncUsers.when(
+              data: (users) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DropdownButtonFormField<User>(
+                      value: _assignedUser,
+                      decoration: InputDecoration(
+                        labelText: 'Select assignee',
+                        prefixIcon: const Icon(Icons.person),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadii.md),
+                        ),
+                      ),
+                      items: [
+                        const DropdownMenuItem<User>(
+                          value: null,
+                          child: Text('None (assign to yourself)'),
+                        ),
+                        ...users.map((user) => DropdownMenuItem(
+                          value: user,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                child: Text(user.name[0]),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    user.name,
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(
+                                    user.email,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        )),
+                      ],
+                      onChanged: (user) {
+                        setState(() => _assignedUser = user);
+                      },
+                    ),
+                    if (_assignedUser != null) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withOpacity(0.1),
+                              AppColors.primary.withOpacity(0.05),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadii.md),
+                          border: Border.all(
+                            color: AppColors.primary.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        _sendAsRequest ? Icons.mail_outline : Icons.check_circle_outline,
+                                        size: 20,
+                                        color: AppColors.primary,
+                                      ),
+                                      const SizedBox(width: AppSpacing.xs),
+                                      Text(
+                                        _sendAsRequest ? 'Send as Request' : 'Direct Assignment',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    _sendAsRequest
+                                        ? '${_assignedUser!.name} will receive a request notification and can accept or reject'
+                                        : 'Task will be directly assigned to ${_assignedUser!.name}',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: _sendAsRequest,
+                              onChanged: (value) {
+                                setState(() => _sendAsRequest = value);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => const Text('Failed to load team members'),
+            ),
+            
             const Spacer(),
             Semantics(
               button: true,

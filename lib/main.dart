@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:io' if (dart.library.html) 'dart:html' as platform show Platform;
 
 import 'app_router.dart';
 import 'core/providers/feedback_providers.dart';
@@ -109,14 +108,13 @@ class _TaskflowAppState extends ConsumerState<TaskflowApp> {
   Widget build(BuildContext context) {
     final router = createRouter();
     
-    // Use iOS glass theme for iOS, Fluent theme for Android/Web
-    final bool isIOS = !kIsWeb && Theme.of(context).platform == TargetPlatform.iOS;
+    // Use Fluent theme for all platforms (iOS glass theme not compatible with web)
     
     return MaterialApp.router(
       title: 'Taskflow',
       debugShowCheckedModeBanner: false,
-      theme: isIOS ? iOSGlassTheme.light() : FluentTheme.light(),
-      darkTheme: isIOS ? iOSGlassTheme.dark() : FluentTheme.dark(),
+      theme: FluentTheme.light(),
+      darkTheme: FluentTheme.dark(),
       themeMode: ThemeMode.light,
       routerConfig: router,
       builder: (context, child) {

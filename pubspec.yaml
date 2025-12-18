@@ -55,6 +55,7 @@ dependencies:
   flutter_sound: ^9.4.10
   path_provider: ^2.1.4
   image_picker: ^1.0.7
+  confetti: ^0.7.0
 
 dev_dependencies:
   flutter_test:

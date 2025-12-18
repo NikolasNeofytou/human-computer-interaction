@@ -38,6 +38,7 @@ class NotificationsScreen extends ConsumerWidget {
                   final color = _typeColor(item.type);
                   final icon = _typeIcon(item.type);
                   return _NotificationTile(
+                    notification: item,
                     title: item.title,
                     icon: icon,
                     color: color,
@@ -60,12 +61,14 @@ class NotificationsScreen extends ConsumerWidget {
 
 class _NotificationTile extends StatelessWidget {
   const _NotificationTile({
+    required this.notification,
     required this.title,
     required this.icon,
     required this.color,
     this.onTap,
   });
 
+  final AppNotification notification;
   final String title;
   final IconData icon;
   final Color color;
@@ -73,30 +76,77 @@ class _NotificationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTaskAssignment = notification.type == NotificationType.taskAssignment && notification.actionable;
+    
     return AnimatedCard(
-      onTap: onTap,
-      child: Row(
+      onTap: isTaskAssignment ? null : onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            backgroundColor: color.withOpacity(0.15),
-            child: Icon(icon, color: color),
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: color.withOpacity(0.15),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+              ),
+              if (!isTaskAssignment)
+                Semantics(
+                  label: 'View notification',
+                  button: true,
+                  child: IconButton(
+                    onPressed: onTap,
+                    icon: const Icon(Icons.chevron_right),
+                    tooltip: 'View',
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.bodyLarge,
+          if (isTaskAssignment) ...[
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      // Reject action
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Task assignment rejected')),
+                      );
+                    },
+                    icon: const Icon(Icons.close),
+                    label: const Text('Reject'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: BorderSide(color: AppColors.error),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      // Accept action
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Task assignment accepted!')),
+                      );
+                    },
+                    icon: const Icon(Icons.check),
+                    label: const Text('Accept'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          Semantics(
-            label: 'View notification',
-            button: true,
-            child: IconButton(
-              onPressed: onTap,
-              icon: const Icon(Icons.chevron_right),
-              tooltip: 'View',
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -115,6 +165,8 @@ IconData _typeIcon(NotificationType type) {
       return Icons.cancel_outlined;
     case NotificationType.completed:
       return Icons.verified_outlined;
+    case NotificationType.taskAssignment:
+      return Icons.assignment_ind;
   }
 }
 
@@ -130,5 +182,7 @@ Color _typeColor(NotificationType type) {
       return AppColors.error;
     case NotificationType.completed:
       return AppColors.primary;
+    case NotificationType.taskAssignment:
+      return AppColors.info;
   }
 }

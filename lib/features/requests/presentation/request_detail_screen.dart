@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/services/haptics_service.dart';
 
 import '../../../core/models/request.dart';
 import '../../../core/providers/data_providers.dart';
+import '../../../core/services/audio_service.dart';
+import '../../../core/services/haptics_service.dart';
+import '../../../design_system/widgets/app_snackbar.dart';
+import '../../../design_system/widgets/loading_button.dart';
 import '../../../theme/tokens.dart';
 
 class RequestDetailScreen extends ConsumerWidget {
@@ -55,13 +61,41 @@ class RequestDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   FilledButton.icon(
-                    onPressed: () {},
+                    onPressed: resolved.status == RequestStatus.pending
+                        ? () async {
+                            await HapticsService().trigger(HapticFeedbackType.success);
+                            await AudioService().play(SoundEffect.success);
+                            
+                            if (context.mounted) {
+                              AppSnackbar.show(
+                                context,
+                                message: 'Request accepted',
+                                type: SnackbarType.success,
+                              );
+                              context.pop();
+                            }
+                          }
+                        : null,
                     icon: const Icon(Icons.check_circle_outline),
                     label: const Text('Accept'),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: resolved.status == RequestStatus.pending
+                        ? () async {
+                            await HapticsService().trigger(HapticFeedbackType.error);
+                            await AudioService().play(SoundEffect.error);
+                            
+                            if (context.mounted) {
+                              AppSnackbar.show(
+                                context,
+                                message: 'Request declined',
+                                type: SnackbarType.error,
+                              );
+                              context.pop();
+                            }
+                          }
+                        : null,
                     icon: const Icon(Icons.cancel_outlined),
                     label: const Text('Decline'),
                   ),

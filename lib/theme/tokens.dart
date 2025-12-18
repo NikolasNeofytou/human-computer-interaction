@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Color tokens mapped from the shared Figma variables screenshot.
 class AppColors {
   /// Brand primary (buttons, highlights).
-  static const primary = Color(0xFF9747FF);
+  static const primary = Color(0xFF2563EB); // Solid blue for better contrast
 
   /// Success / accepted states.
   static const success = Color(0xFF9FFF7F);
@@ -34,6 +34,7 @@ class AppSpacing {
   static const double md = 12;
   static const double lg = 16;
   static const double xl = 20;
+  static const double pill = 999;
   static const double xxl = 24;
   static const double xxxl = 32;
 }
@@ -43,6 +44,8 @@ class AppRadii {
   static const double sm = 8;
   static const double md = 12;
   static const double lg = 16;
+  static const double xl = 20;
+  static const double xxl = 24;
   static const double pill = 999;
 }
 

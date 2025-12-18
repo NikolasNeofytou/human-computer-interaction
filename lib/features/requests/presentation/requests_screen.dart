@@ -10,6 +10,8 @@ import '../../../design_system/widgets/app_pill.dart';
 import '../../../design_system/widgets/app_state.dart';
 import '../../../design_system/widgets/shimmer_list.dart';
 import '../../../design_system/widgets/animated_card.dart';
+import '../../../design_system/widgets/empty_state.dart';
+import '../../../design_system/widgets/app_snackbar.dart';
 import '../../../theme/tokens.dart';
 import '_action_background.dart';
 import '../../../core/models/request.dart';
@@ -42,7 +44,18 @@ class RequestsScreen extends ConsumerWidget {
           child: asyncRequests.when(
             data: (items) {
               if (items.isEmpty) {
-                return const AppStateView.empty(message: 'No requests yet.');
+                return EmptyState(
+                  icon: Icons.inbox_outlined,
+                  title: 'No requests',
+                  subtitle: 'Send or receive task assignment requests',
+                  actionLabel: 'Send Request',
+                  onAction: () => _showRequestModal(
+                    context,
+                    onSubmit: (title, dueDate) => ref
+                        .read(requestsControllerProvider.notifier)
+                        .send(title, dueDate: dueDate),
+                  ),
+                );
               }
               return ListView.separated(
                 itemCount: items.length,
@@ -119,11 +132,12 @@ class RequestsScreen extends ConsumerWidget {
 
 void _showUndo(BuildContext context,
     {required String message, required VoidCallback onUndo}) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      action: SnackBarAction(label: 'Undo', onPressed: onUndo),
-    ),
+  AppSnackbar.show(
+    context,
+    message: message,
+    type: SnackbarType.success,
+    actionLabel: 'Undo',
+    onAction: onUndo,
   );
 }
 
@@ -297,8 +311,10 @@ Future<void> _showRequestModal(
                     : () async {
                         final title = titleController.text.trim();
                         if (title.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Title is required')),
+                          AppSnackbar.show(
+                            context,
+                            message: 'Title is required',
+                            type: SnackbarType.warning,
                           );
                           return;
                         }
@@ -323,8 +339,10 @@ Future<void> _showRequestModal(
 
   titleController.dispose();
   if (result == true && context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Request sent')),
+    AppSnackbar.show(
+      context,
+      message: 'Request sent',
+      type: SnackbarType.success,
     );
   }
 }

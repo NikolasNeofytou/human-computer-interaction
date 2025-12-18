@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/models/project.dart';
 import '../../../core/models/task_item.dart';
+import '../../../core/models/user.dart';
 import '../../../core/providers/data_providers.dart';
 import '../../../core/utils/memoization.dart';
 import '../../../core/utils/debouncer.dart';
@@ -18,6 +20,8 @@ import '../../../design_system/animations/micro_interactions.dart';
 import '../../../theme/tokens.dart';
 import '../../../theme/gradients.dart';
 
+enum CalendarViewMode { month, week, day }
+
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
@@ -28,8 +32,15 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   late DateTime _currentMonth;
   DateTime? _selectedDate;
+  CalendarViewMode _viewMode = CalendarViewMode.month;
   final _searchDebouncer = Debouncer(delay: const Duration(milliseconds: 300));
   final _filterCache = ListFilterCache<TaskItem>();
+  
+  // Filter state
+  String? _selectedProjectId;
+  TaskStatus? _selectedStatus;
+  String? _selectedUserId;
+  bool _showFilters = false;
 
   @override
   void initState() {
@@ -79,10 +90,40 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       t.dueDate.month == _currentMonth.month
     ).toList()..sort((a, b) => a.dueDate.compareTo(b.dueDate));
   }
+  
+  List<TaskItem> _applyFilters(List<TaskItem> tasks) {
+    var filtered = tasks;
+    
+    if (_selectedProjectId != null) {
+      filtered = filtered.where((t) => t.projectId == _selectedProjectId).toList();
+    }
+    
+    if (_selectedStatus != null) {
+      filtered = filtered.where((t) => t.status == _selectedStatus).toList();
+    }
+    
+    if (_selectedUserId != null) {
+      filtered = filtered.where((t) => t.assignedTo == _selectedUserId).toList();
+    }
+    
+    return filtered;
+  }
+  
+  void _clearFilters() {
+    setState(() {
+      _selectedProjectId = null;
+      _selectedStatus = null;
+      _selectedUserId = null;
+    });
+  }
+  
+  bool get _hasActiveFilters => 
+    _selectedProjectId != null || _selectedStatus != null || _selectedUserId != null;
 
   @override
   Widget build(BuildContext context) {
     final asyncTasks = ref.watch(calendarTasksProvider);
+    final asyncProjects = ref.watch(projectsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -92,13 +133,167 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         
+        // View mode toggle
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ViewModeButton(
+                icon: Icons.calendar_view_month,
+                label: 'Month',
+                isSelected: _viewMode == CalendarViewMode.month,
+                onTap: () => setState(() => _viewMode = CalendarViewMode.month),
+              ),
+              const SizedBox(width: 4),
+              _ViewModeButton(
+                icon: Icons.calendar_view_week,
+                label: 'Week',
+                isSelected: _viewMode == CalendarViewMode.week,
+                onTap: () => setState(() => _viewMode = CalendarViewMode.week),
+              ),
+              const SizedBox(width: 4),
+              _ViewModeButton(
+                icon: Icons.calendar_today,
+                label: 'Day',
+                isSelected: _viewMode == CalendarViewMode.day,
+                onTap: () => setState(() => _viewMode = CalendarViewMode.day),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        
+        // Filter bar
+        Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    FilterChip(
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.filter_list, size: 16),
+                          const SizedBox(width: 4),
+                          Text('Filters${_hasActiveFilters ? " (${[_selectedProjectId, _selectedStatus, _selectedUserId].where((e) => e != null).length})" : ""}'),
+                        ],
+                      ),
+                      selected: _showFilters,
+                      onSelected: (selected) => setState(() => _showFilters = selected),
+                    ),
+                    if (_hasActiveFilters) ...[
+                      const SizedBox(width: 8),
+                      ActionChip(
+                        label: const Text('Clear'),
+                        avatar: const Icon(Icons.clear, size: 16),
+                        onPressed: _clearFilters,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        
+        // Filter options (expandable)
+        if (_showFilters) ...[
+          const SizedBox(height: AppSpacing.sm),
+          asyncProjects.when(
+            data: (projects) {
+              final asyncUsers = ref.watch(usersProvider);
+              return asyncUsers.when(
+                data: (users) => Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppRadii.md),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Filter by:',
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          // Project filter
+                          ...projects.map((project) => FilterChip(
+                            label: Text(project.name),
+                            selected: _selectedProjectId == project.id,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedProjectId = selected ? project.id : null;
+                              });
+                            },
+                          )),
+                          // Status filter
+                          ...TaskStatus.values.map((status) => FilterChip(
+                            label: Text(_statusLabel(status)),
+                            avatar: Icon(
+                              _statusIcon(status),
+                              size: 16,
+                              color: _selectedStatus == status 
+                                ? Theme.of(context).colorScheme.onSecondaryContainer
+                                : null,
+                            ),
+                            selected: _selectedStatus == status,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedStatus = selected ? status : null;
+                              });
+                            },
+                          )),
+                          // User filter
+                          ...users.map((user) => FilterChip(
+                            label: Text(user.name),
+                            avatar: CircleAvatar(
+                              radius: 10,
+                              child: Text(
+                                user.name[0],
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            ),
+                            selected: _selectedUserId == user.id,
+                            onSelected: (selected) {
+                              setState(() {
+                                _selectedUserId = selected ? user.id : null;
+                              });
+                            },
+                          )),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        
         // Month navigation
         Row(
           children: [
             IconButton(
               onPressed: _previousMonth,
               icon: const Icon(Icons.chevron_left),
-              tooltip: 'Previous month',
+              tooltip: 'Previous ${_viewMode == CalendarViewMode.month ? "month" : _viewMode == CalendarViewMode.week ? "week" : "day"}',
             ),
             Expanded(
               child: Center(
@@ -148,27 +343,60 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         
-        // Calendar grid
+        // Calendar view based on mode
         asyncTasks.when(
           data: (tasks) {
-            return CustomRefreshIndicator(
-              onRefresh: () async {
-                // Refresh calendar data
-                ref.invalidate(calendarTasksProvider);
-                await Future.delayed(const Duration(milliseconds: 500));
+            final filteredTasks = _applyFilters(tasks);
+            return asyncProjects.when(
+              data: (projects) {
+                return CustomRefreshIndicator(
+                  onRefresh: () async {
+                    // Refresh calendar data
+                    ref.invalidate(calendarTasksProvider);
+                    ref.invalidate(projectsProvider);
+                    await Future.delayed(const Duration(milliseconds: 500));
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: _viewMode == CalendarViewMode.month
+                        ? _CalendarGrid(
+                            currentMonth: _currentMonth,
+                            selectedDate: _selectedDate,
+                            tasks: filteredTasks,
+                            projects: projects,
+                            onDateSelected: (date) {
+                              setState(() {
+                                _selectedDate = date;
+                              });
+                            },
+                          )
+                        : _viewMode == CalendarViewMode.week
+                            ? _WeekView(
+                                currentWeek: _selectedDate ?? DateTime.now(),
+                                selectedDate: _selectedDate,
+                                tasks: filteredTasks,
+                                projects: projects,
+                                onDateSelected: (date) {
+                                  setState(() {
+                                    _selectedDate = date;
+                                  });
+                                },
+                              )
+                            : _DayView(
+                                selectedDate: _selectedDate ?? DateTime.now(),
+                                tasks: filteredTasks,
+                                projects: projects,
+                              ),
+                  ),
+                );
               },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: _CalendarGrid(
-              currentMonth: _currentMonth,
-              selectedDate: _selectedDate,
-              tasks: tasks,
-              onDateSelected: (date) {
-                setState(() {
-                  _selectedDate = date;
-                });
-              },
-            ),
+              loading: () => const SizedBox(
+                height: 300,
+                child: CalendarGridSkeleton(),
+              ),
+              error: (err, _) => SizedBox(
+                height: 300,
+                child: AppStateView.error(message: 'Failed to load calendar'),
               ),
             );
           },
@@ -190,13 +418,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         Expanded(
           child: asyncTasks.when(
             data: (tasks) {
+              final filteredTasks = _applyFilters(tasks);
               if (_selectedDate == null) {
                 return const AppStateView.empty(
                   message: 'Select a date to view tasks',
                 );
               }
               
-              final dayTasks = _getTasksForDate(tasks, _selectedDate!);
+              final dayTasks = _getTasksForDate(filteredTasks, _selectedDate!);
               
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,12 +554,14 @@ class _CalendarGrid extends StatelessWidget {
     required this.currentMonth,
     required this.selectedDate,
     required this.tasks,
+    required this.projects,
     required this.onDateSelected,
   });
 
   final DateTime currentMonth;
   final DateTime? selectedDate;
   final List<TaskItem> tasks;
+  final List<Project> projects;
   final Function(DateTime) onDateSelected;
 
   List<DateTime> _getDaysInMonth() {
@@ -365,6 +596,15 @@ class _CalendarGrid extends StatelessWidget {
       t.dueDate.month == date.month &&
       t.dueDate.day == date.day
     ).length;
+  }
+
+  List<Project> _getProjectsForDate(DateTime date) {
+    return projects.where((p) {
+      if (p.deadline == null) return false;
+      return p.deadline!.year == date.year &&
+             p.deadline!.month == date.month &&
+             p.deadline!.day == date.day;
+    }).toList();
   }
 
   bool _isToday(DateTime date) {
@@ -426,14 +666,20 @@ class _CalendarGrid extends StatelessWidget {
             final isToday = _isToday(date);
             final isSelected = _isSelected(date);
             final isCurrentMonth = _isCurrentMonth(date);
-            final taskCount = _getTaskCountForDate(date);
+            final dayTasks = tasks.where((t) =>
+              t.dueDate.year == date.year &&
+              t.dueDate.month == date.month &&
+              t.dueDate.day == date.day
+            ).toList();
+            final projectDeadlines = _getProjectsForDate(date);
             
             return _CalendarDay(
               date: date,
               isToday: isToday,
               isSelected: isSelected,
               isCurrentMonth: isCurrentMonth,
-              taskCount: taskCount,
+              tasks: dayTasks,
+              projectDeadlines: projectDeadlines,
               onTap: () => onDateSelected(date),
             );
           },
@@ -450,7 +696,8 @@ class _CalendarDay extends StatelessWidget {
     required this.isToday,
     required this.isSelected,
     required this.isCurrentMonth,
-    required this.taskCount,
+    required this.tasks,
+    required this.projectDeadlines,
     required this.onTap,
   });
 
@@ -458,7 +705,8 @@ class _CalendarDay extends StatelessWidget {
   final bool isToday;
   final bool isSelected;
   final bool isCurrentMonth;
-  final int taskCount;
+  final List<TaskItem> tasks;
+  final List<Project> projectDeadlines;
   final VoidCallback onTap;
 
   @override
@@ -502,26 +750,87 @@ class _CalendarDay extends StatelessWidget {
                 fontWeight: isToday || isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             ),
-            if (taskCount > 0) ...[
-              const SizedBox(height: 2),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? colorScheme.onPrimary.withOpacity(0.3)
-                      : colorScheme.primary.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '$taskCount',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isSelected ? colorScheme.onPrimary : colorScheme.primary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            const SizedBox(height: 2),
+            // Status indicators and project deadlines
+            if (tasks.isNotEmpty || projectDeadlines.isNotEmpty)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Color-coded status dots
+                  if (tasks.isNotEmpty) ...[
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Group tasks by status and show colored dots
+                        if (tasks.any((t) => t.status == TaskStatus.done))
+                          Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.symmetric(horizontal: 1),
+                            decoration: BoxDecoration(
+                              color: isSelected ? colorScheme.onPrimary : AppColors.success,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        if (tasks.any((t) => t.status == TaskStatus.pending))
+                          Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.symmetric(horizontal: 1),
+                            decoration: BoxDecoration(
+                              color: isSelected ? colorScheme.onPrimary : AppColors.info,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        if (tasks.any((t) => t.status == TaskStatus.blocked))
+                          Container(
+                            width: 6,
+                            height: 6,
+                            margin: const EdgeInsets.symmetric(horizontal: 1),
+                            decoration: BoxDecoration(
+                              color: isSelected ? colorScheme.onPrimary : AppColors.error,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        // Task count badge
+                        const SizedBox(width: 2),
+                        Text(
+                          '${tasks.length}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: textColor ?? colorScheme.onSurface,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (projectDeadlines.isNotEmpty) const SizedBox(width: 4),
+                  ],
+                  // Project deadline flag
+                  if (projectDeadlines.isNotEmpty) ...[
+                    Tooltip(
+                      message: projectDeadlines.map((p) => p.name).join(', '),
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          gradient: AppGradients.accent,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? colorScheme.onPrimary : Colors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.flag,
+                          size: 8,
+                          color: isSelected ? colorScheme.onPrimary : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
           ],
         ),
       ),
@@ -624,4 +933,464 @@ class _CalendarItem extends StatelessWidget {
 
 Color _statusColor(TaskStatus status) {
   return StatusColorCache.getColor(status);
+}
+
+String _statusLabel(TaskStatus status) {
+  switch (status) {
+    case TaskStatus.pending:
+      return 'Pending';
+    case TaskStatus.done:
+      return 'Done';
+    case TaskStatus.blocked:
+      return 'Blocked';
+  }
+}
+
+IconData _statusIcon(TaskStatus status) {
+  switch (status) {
+    case TaskStatus.pending:
+      return Icons.schedule;
+    case TaskStatus.done:
+      return Icons.check_circle;
+    case TaskStatus.blocked:
+      return Icons.block;
+  }
+}
+
+class _ViewModeButton extends StatelessWidget {
+  const _ViewModeButton({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            gradient: isSelected ? AppGradients.primary : null,
+            color: isSelected ? null : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppRadii.md),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected ? Colors.white : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : colorScheme.onSurfaceVariant,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WeekView extends StatelessWidget {
+  const _WeekView({
+    required this.currentWeek,
+    required this.selectedDate,
+    required this.tasks,
+    required this.projects,
+    required this.onDateSelected,
+  });
+
+  final DateTime currentWeek;
+  final DateTime? selectedDate;
+  final List<TaskItem> tasks;
+  final List<Project> projects;
+  final Function(DateTime) onDateSelected;
+
+  List<DateTime> _getWeekDays(DateTime date) {
+    final weekStart = date.subtract(Duration(days: date.weekday % 7));
+    return List.generate(7, (index) => weekStart.add(Duration(days: index)));
+  }
+
+  List<TaskItem> _getTasksForDate(DateTime date) {
+    return tasks.where((t) =>
+      t.dueDate.year == date.year &&
+      t.dueDate.month == date.month &&
+      t.dueDate.day == date.day
+    ).toList();
+  }
+
+  List<Project> _getProjectsForDate(DateTime date) {
+    return projects.where((p) {
+      if (p.deadline == null) return false;
+      return p.deadline!.year == date.year &&
+             p.deadline!.month == date.month &&
+             p.deadline!.day == date.day;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final weekDays = _getWeekDays(currentWeek);
+    final today = DateTime.now();
+    
+    return Column(
+      children: [
+        // Week days header
+        Row(
+          children: weekDays.map((day) {
+            final isToday = day.year == today.year &&
+                day.month == today.month &&
+                day.day == today.day;
+            final isSelected = selectedDate != null &&
+                day.year == selectedDate!.year &&
+                day.month == selectedDate!.month &&
+                day.day == selectedDate!.day;
+            final dayTasks = _getTasksForDate(day);
+            final dayProjects = _getProjectsForDate(day);
+            
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onDateSelected(day),
+                child: Container(
+                  margin: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  decoration: BoxDecoration(
+                    gradient: isSelected
+                        ? AppGradients.primary
+                        : isToday
+                            ? LinearGradient(
+                                colors: [
+                                  AppColors.primary.withOpacity(0.2),
+                                  AppColors.primary.withOpacity(0.1),
+                                ],
+                              )
+                            : null,
+                    borderRadius: BorderRadius.circular(AppRadii.md),
+                    border: Border.all(
+                      color: isToday
+                          ? AppColors.primary
+                          : Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        DateFormat('E').format(day),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${day.day}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : null,
+                        ),
+                      ),
+                      if (dayTasks.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.white.withOpacity(0.3)
+                                : AppColors.primary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${dayTasks.length}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        // Selected day's tasks
+        if (selectedDate != null) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              DateFormat('EEEE, MMMM d').format(selectedDate!),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          ...(_getTasksForDate(selectedDate!).map((task) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: _CalendarItem(
+                title: task.title,
+                color: _statusColor(task.status),
+                status: task.status,
+                onTap: () => context.push('/projects/${task.projectId}/task/${task.id}'),
+              ),
+            );
+          }).toList()),
+          if (_getTasksForDate(selectedDate!).isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.xl),
+                child: AppStateView.empty(
+                  message: 'No tasks scheduled',
+                ),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DayView extends StatelessWidget {
+  const _DayView({
+    required this.selectedDate,
+    required this.tasks,
+    required this.projects,
+  });
+
+  final DateTime selectedDate;
+  final List<TaskItem> tasks;
+  final List<Project> projects;
+
+  List<TaskItem> _getTasksForDate() {
+    return tasks.where((t) =>
+      t.dueDate.year == selectedDate.year &&
+      t.dueDate.month == selectedDate.month &&
+      t.dueDate.day == selectedDate.day
+    ).toList();
+  }
+
+  List<Project> _getProjectsForDate() {
+    return projects.where((p) {
+      if (p.deadline == null) return false;
+      return p.deadline!.year == selectedDate.year &&
+             p.deadline!.month == selectedDate.month &&
+             p.deadline!.day == selectedDate.day;
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dayTasks = _getTasksForDate();
+    final dayProjects = _getProjectsForDate();
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Day header
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            gradient: AppGradients.primary,
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('EEEE').format(selectedDate),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat('MMMM d, yyyy').format(selectedDate),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                ),
+                child: Text(
+                  '${dayTasks.length} ${dayTasks.length == 1 ? 'task' : 'tasks'}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        
+        // Project deadlines
+        if (dayProjects.isNotEmpty) ...[
+          Text(
+            'Project Deadlines',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ...dayProjects.map((project) {
+            Color projectColor;
+            switch (project.status) {
+              case ProjectStatus.onTrack:
+                projectColor = AppColors.success;
+                break;
+              case ProjectStatus.dueSoon:
+                projectColor = AppColors.warning;
+                break;
+              case ProjectStatus.blocked:
+                projectColor = AppColors.error;
+                break;
+            }
+            
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: AnimatedCard(
+                backgroundGradient: LinearGradient(
+                  colors: [
+                    projectColor.withOpacity(0.15),
+                    Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.9),
+                  ],
+                ),
+                onTap: () => context.push('/projects/${project.id}'),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            projectColor.withOpacity(0.75),
+                            projectColor.withOpacity(0.5),
+                          ],
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.flag,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            project.name,
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Deadline Today',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: projectColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+          const SizedBox(height: AppSpacing.lg),
+          const Divider(),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        
+        // Tasks list
+        if (dayTasks.isEmpty && dayProjects.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(AppSpacing.xl),
+              child: AppStateView.empty(
+                message: 'No tasks scheduled for this day',
+              ),
+            ),
+          )
+        else
+          ...dayTasks.map((task) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: _CalendarItem(
+                title: task.title,
+                color: _statusColor(task.status),
+                status: task.status,
+                onTap: () => context.push('/projects/${task.projectId}/task/${task.id}'),
+              ),
+            );
+          }).toList(),
+      ],
+    );
+  }
 }

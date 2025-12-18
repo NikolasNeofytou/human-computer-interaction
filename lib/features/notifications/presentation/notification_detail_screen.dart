@@ -64,7 +64,15 @@ class NotificationDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   FilledButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Opening related ${_typeLabel(resolved?.type ?? NotificationType.taskAssignment)}...'),
+                        ),
+                      );
+                      // In a real app, this would navigate to the related item
+                      // context.go('/projects/${projectId}');
+                    },
                     icon: const Icon(Icons.chevron_right),
                     label: const Text('Open related item'),
                   ),
@@ -72,6 +80,23 @@ class NotificationDetailScreen extends ConsumerWidget {
               ),
       ),
     );
+  }
+}
+
+String _typeLabel(NotificationType type) {
+  switch (type) {
+    case NotificationType.overdue:
+      return 'overdue task';
+    case NotificationType.comment:
+      return 'comment';
+    case NotificationType.accepted:
+      return 'accepted request';
+    case NotificationType.declined:
+      return 'declined request';
+    case NotificationType.completed:
+      return 'completed task';
+    case NotificationType.taskAssignment:
+      return 'task assignment';
   }
 }
 
@@ -87,6 +112,8 @@ IconData _typeIcon(NotificationType type) {
       return Icons.cancel_outlined;
     case NotificationType.completed:
       return Icons.verified_outlined;
+    case NotificationType.taskAssignment:
+      return Icons.assignment_ind;
   }
 }
 
@@ -102,5 +129,7 @@ Color _typeColor(NotificationType type) {
       return AppColors.error;
     case NotificationType.completed:
       return AppColors.primary;
+    case NotificationType.taskAssignment:
+      return AppColors.info;
   }
 }

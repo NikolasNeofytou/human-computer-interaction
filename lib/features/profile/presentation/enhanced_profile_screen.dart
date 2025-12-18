@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
 import 'package:flutter/material.dart' hide Badge;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:io' if (dart.library.html) 'dart:html' as platform;
 
 import '../../../theme/tokens.dart';
 import '../models/badge_model.dart';
@@ -75,6 +74,30 @@ class EnhancedProfileScreen extends ConsumerWidget {
                 onTap: () => context.go('/settings/theme'),
               ),
               _ProfileTile(
+                icon: Icons.lightbulb_outline,
+                title: 'Design Patterns',
+                subtitle: '11 HCI patterns demonstrated',
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.shade50,
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                  ),
+                  child: Text(
+                    'NEW',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple.shade700,
+                    ),
+                  ),
+                ),
+                onTap: () => context.go('/settings/patterns'),
+              ),
+              _ProfileTile(
                 icon: Icons.logout,
                 title: 'Logout',
                 subtitle: 'Sign out safely',
@@ -87,12 +110,12 @@ class EnhancedProfileScreen extends ConsumerWidget {
     );
   }
 
-  void _showBadgesSheet(BuildContext context, WidgetRef ref, List<Badge> badges) {
+  void _showBadgesSheet(BuildContext context, WidgetRef ref, List<AppBadge> badgesList) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _BadgesSheet(badges: badges),
+      builder: (context) => _BadgesSheet(badges: badgesList),
     );
   }
 
@@ -141,22 +164,16 @@ class _ProfileHeader extends ConsumerWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.primary.withOpacity(0.1),
                   border: Border.all(color: AppColors.primary, width: 2),
                 ),
                 child: profile.photoPath != null
                     ? ClipOval(
-                        child: kIsWeb
-                            ? Image.network(
-                                profile.photoPath!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _defaultAvatar(),
-                              )
-                            : Image.network(
-                                profile.photoPath!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _defaultAvatar(),
-                              ),
+                        child: Image.file(
+                          File(profile.photoPath!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _defaultAvatar(),
+                        ),
                       )
                     : _defaultAvatar(),
               ),
@@ -375,7 +392,7 @@ class _StatusPickerSheetState extends ConsumerState<_StatusPickerSheet> {
 class _SelectedBadgeShowcase extends StatelessWidget {
   const _SelectedBadgeShowcase({required this.badge});
 
-  final Badge badge;
+  final AppBadge badge;
 
   @override
   Widget build(BuildContext context) {
@@ -447,7 +464,7 @@ class _SelectedBadgeShowcase extends StatelessWidget {
 class _BadgesSheet extends ConsumerWidget {
   const _BadgesSheet({required this.badges});
 
-  final List<Badge> badges;
+  final List<AppBadge> badges;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -459,7 +476,7 @@ class _BadgesSheet extends ConsumerWidget {
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadii.lg)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadii.xxl)),
       ),
       child: Column(
         children: [
@@ -556,7 +573,7 @@ class _BadgeTile extends StatelessWidget {
     this.onTap,
   });
 
-  final Badge badge;
+  final AppBadge badge;
   final bool isSelected;
   final VoidCallback? onTap;
 
@@ -647,12 +664,14 @@ class _ProfileTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.trailing,
     this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final Widget? trailing;
   final VoidCallback? onTap;
 
   @override
@@ -666,7 +685,7 @@ class _ProfileTile extends StatelessWidget {
               color: AppColors.neutral,
             ),
       ),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: trailing ?? const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }

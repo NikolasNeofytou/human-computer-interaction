@@ -5,9 +5,44 @@ import '../models/comment.dart';
 import '../models/project.dart';
 import '../models/request.dart';
 import '../models/task_item.dart';
+import '../models/user.dart';
 
 class MockDataSource {
   static int _commentCounter = 5;
+  
+  // Mock team members
+  static const List<User> mockUsers = [
+    User(
+      id: 'user-1',
+      name: 'Alice Johnson',
+      email: 'alice@taskflow.com',
+      avatarUrl: null,
+    ),
+    User(
+      id: 'user-2',
+      name: 'Bob Smith',
+      email: 'bob@taskflow.com',
+      avatarUrl: null,
+    ),
+    User(
+      id: 'user-3',
+      name: 'Carol Williams',
+      email: 'carol@taskflow.com',
+      avatarUrl: null,
+    ),
+    User(
+      id: 'user-4',
+      name: 'David Brown',
+      email: 'david@taskflow.com',
+      avatarUrl: null,
+    ),
+  ];
+  
+  static Future<List<User>> fetchUsers() async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    return mockUsers;
+  }
+  
   static final Map<String, List<TaskItem>> _projectTasks = {
     'proj-1': [
       TaskItem(
@@ -73,6 +108,16 @@ class MockDataSource {
     await Future.delayed(const Duration(milliseconds: 200));
     return [
       AppNotification(
+        id: 'not-0',
+        title: 'Alice Johnson wants to assign you "Design handoff" task',
+        type: NotificationType.taskAssignment,
+        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+        requestId: 'req-task-1',
+        taskId: 'task-a',
+        fromUserId: 'user-1',
+        actionable: true,
+      ),
+      AppNotification(
         id: 'not-1',
         title: 'Project X is overdue.',
         type: NotificationType.overdue,
@@ -101,24 +146,34 @@ class MockDataSource {
 
   static Future<List<Project>> fetchProjects() async {
     await Future.delayed(const Duration(milliseconds: 200));
-    return const [
+    final now = DateTime.now();
+    return [
       Project(
         id: 'proj-1',
-        name: 'Project A',
-        status: ProjectStatus.dueSoon,
-        tasks: 5,
+        name: 'Mobile App V2',
+        status: ProjectStatus.onTrack,
+        tasks: 12,
+        completedTasks: 8,
+        deadline: DateTime(now.year, now.month, now.day + 5),
+        teamMembers: ['user-1', 'user-2', 'user-3'],
       ),
       Project(
         id: 'proj-2',
-        name: 'Project B',
-        status: ProjectStatus.onTrack,
+        name: 'Website Redesign',
+        status: ProjectStatus.dueSoon,
         tasks: 8,
+        completedTasks: 3,
+        deadline: DateTime(now.year, now.month + 1, 15),
+        teamMembers: ['user-2', 'user-4'],
       ),
       Project(
         id: 'proj-3',
-        name: 'Project C',
+        name: 'Backend API Update',
         status: ProjectStatus.blocked,
-        tasks: 3,
+        tasks: 6,
+        completedTasks: 2,
+        deadline: DateTime(now.year, now.month, now.day + 10),
+        teamMembers: ['user-1', 'user-3', 'user-4'],
       ),
     ];
   }

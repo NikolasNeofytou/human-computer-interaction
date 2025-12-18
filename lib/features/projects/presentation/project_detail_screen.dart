@@ -13,6 +13,9 @@ import '../../../core/services/feedback_service.dart';
 import '../../../design_system/widgets/app_state.dart';
 import '../../../design_system/widgets/shimmer_list.dart';
 import '../../../design_system/widgets/animated_card.dart';
+import '../../../design_system/widgets/empty_state.dart';
+import '../../../design_system/widgets/app_snackbar.dart';
+import '../../../design_system/widgets/app_bottom_sheet.dart';
 import '../../../theme/tokens.dart';
 import '../../invite/presentation/qr_scan_screen.dart';
 
@@ -354,8 +357,10 @@ Future<void> _showQRCode(BuildContext context, WidgetRef ref, String projectId) 
               await Clipboard.setData(ClipboardData(text: inviteData.url));
               await ref.read(feedbackServiceProvider).trigger(FeedbackType.lightTap);
               if (!ctx.mounted) return;
-              ScaffoldMessenger.of(ctx).showSnackBar(
-                const SnackBar(content: Text('Link copied to clipboard')),
+              AppSnackbar.show(
+                ctx,
+                message: 'Link copied to clipboard',
+                type: SnackbarType.success,
               );
             },
             child: const Text('Copy Link'),
@@ -384,10 +389,10 @@ Future<void> _scanQRCode(BuildContext context, WidgetRef ref) async {
     if (!granted) {
       if (!context.mounted) return;
       await ref.read(feedbackServiceProvider).trigger(FeedbackType.warning);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Camera permission is required to scan QR codes'),
-        ),
+      AppSnackbar.show(
+        context,
+        message: 'Camera permission is required to scan QR codes',
+        type: SnackbarType.warning,
       );
       return;
     }
@@ -409,9 +414,9 @@ Future<void> _scanQRCode(BuildContext context, WidgetRef ref) async {
   await ref.read(feedbackServiceProvider).trigger(FeedbackType.success);
 
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text('Scanned invite for project #${inviteData.projectId}'),
-    ),
+  AppSnackbar.show(
+    context,
+    message: 'Scanned invite for project #${inviteData.projectId}',
+    type: SnackbarType.success,
   );
 }

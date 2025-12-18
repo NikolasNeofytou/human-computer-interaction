@@ -408,6 +408,8 @@ IconData _typeIcon(NotificationType type) {
       return Icons.cancel_outlined;
     case NotificationType.completed:
       return Icons.verified_outlined;
+    case NotificationType.taskAssignment:
+      return Icons.assignment_ind;
   }
 }
 
@@ -423,5 +425,7 @@ Color _typeColor(NotificationType type) {
       return AppColors.error;
     case NotificationType.completed:
       return AppColors.primary;
+    case NotificationType.taskAssignment:
+      return AppColors.info;
   }
 }

@@ -5,6 +5,7 @@ import '../models/app_notification.dart';
 import '../models/project.dart';
 import '../models/request.dart';
 import '../models/task_item.dart';
+import '../models/user.dart';
 import '../network/api_client.dart';
 import '../repositories/calendar_repository.dart';
 import '../repositories/comments_repository.dart';
@@ -17,6 +18,7 @@ import '../repositories/remote/notifications_remote_repository.dart';
 import '../repositories/remote/projects_remote_repository.dart';
 import '../repositories/remote/requests_remote_repository.dart';
 import '../repositories/requests_repository.dart';
+import '../data/mock_data.dart';
 
 // Repository providers (mock vs remote selection)
 final requestsRepositoryProvider = Provider<RequestsRepository>((ref) {
@@ -75,3 +77,8 @@ final projectTasksProvider =
     FutureProvider.autoDispose.family<List<TaskItem>, String>((ref, projectId) {
   return ref.read(projectsRepositoryProvider).fetchProjectTasks(projectId);
 });
+
+// Users provider
+final usersProvider = FutureProvider.autoDispose<List<User>>(
+  (ref) => MockDataSource.fetchUsers(),
+);

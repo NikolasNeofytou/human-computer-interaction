@@ -23,6 +23,7 @@ import 'features/schedule/presentation/calendar_screen.dart';
 import 'features/settings/presentation/feedback_settings_screen.dart';
 import 'features/settings/presentation/accessibility_settings_screen.dart';
 import 'features/settings/presentation/theme_customization_screen.dart';
+import 'features/settings/presentation/pattern_showcase_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/shell/presentation/app_shell.dart';
 import 'features/chat/presentation/chat_screen.dart';
@@ -202,6 +203,11 @@ GoRouter createRouter() {
         path: '/settings/theme',
         name: 'theme-customization',
         builder: (context, state) => const ThemeCustomizationScreen(),
+      ),
+      GoRoute(
+        path: '/settings/patterns',
+        name: 'pattern-showcase',
+        builder: (context, state) => const PatternShowcaseScreen(),
       ),
       GoRoute(
         path: '/onboarding',

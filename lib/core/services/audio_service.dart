@@ -71,14 +71,12 @@ class AudioService {
     final soundPath = _getSoundPath(effect);
 
     try {
-      // For now, skip if sound file doesn't exist
-      // In production, these files should exist
+      // Play the sound effect
+      await _player.play(AssetSource(soundPath));
+      
       if (kDebugMode) {
-        print('AudioService: Would play sound: $soundPath');
+        print('AudioService: Playing sound: $soundPath');
       }
-
-      // Uncomment when actual sound files are added:
-      // await _player.play(AssetSource(soundPath));
     } catch (e) {
       if (kDebugMode) {
         print('AudioService: Error playing sound $soundPath: $e');
